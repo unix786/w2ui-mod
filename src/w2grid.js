@@ -2411,6 +2411,7 @@
             if (!w2utils.isInt(this.last.xhr_offset)) this.last.xhr_offset = 0;
             // add list params
             var params = {
+                cmd         : cmd,
                 limit       : this.limit,
                 offset      : parseInt(this.offset) + parseInt(this.last.xhr_offset),
                 searchLogic : this.last.logic,
