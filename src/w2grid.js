@@ -5538,7 +5538,7 @@
             if (edata.isCancelled === true) return;
             // regular processing
             var obj  = this;
-            var hide = (!event.shiftKey && !event.metaKey && !event.ctrlKey && !$(event.target).hasClass('w2ui-column-check'));
+            var hide = false;//(!event.shiftKey && !event.metaKey && !event.ctrlKey && !$(event.target).hasClass('w2ui-column-check'));
             // collapse expanded rows
             var rows = obj.find({ 'w2ui.expanded': true }, true);
             for (var r = 0; r < rows.length; r++) {
