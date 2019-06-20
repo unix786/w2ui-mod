@@ -585,6 +585,7 @@
             return true;
         },
 
+        // Получает либо запись, либо индекс записи с указанным recid.
         get: function (recid, returnIndex) {
             // search records
             if ($.isArray(recid)) {
@@ -4056,32 +4057,32 @@
                 if (rec.w2ui.expanded == 'none') return false;
                 // insert expand row
                 $('#grid_'+ this.name +'_rec_'+ id).after(
-                        '<tr id="grid_'+ this.name +'_rec_'+ recid +'_expanded_row" class="w2ui-expanded-row">'+
-                        '    <td colspan="100" class="w2ui-expanded2">'+
-                        '        <div id="grid_'+ this.name +'_rec_'+ recid +'_expanded"></div>'+
+                        '<tr id="grid_'+ this.name +'_rec_'+ id +'_expanded_row" class="w2ui-expanded-row">'+
+                        '    <td' + (this.columns.length > 1 ? ' colspan="' + this.columns.length + '"' : '') + ' class="w2ui-expanded2">'+
+                        '        <div id="grid_'+ this.name +'_rec_'+ id +'_expanded"></div>'+
                         '    </td>'+
                         '    <td class="w2ui-grid-data-last"></td>'+
                         '</tr>');
 
                 $('#grid_'+ this.name +'_frec_'+ id).after(
-                        '<tr id="grid_'+ this.name +'_frec_'+ recid +'_expanded_row" class="w2ui-expanded-row">'+
+                        '<tr id="grid_'+ this.name +'_frec_'+ id +'_expanded_row" class="w2ui-expanded-row">'+
                             (this.show.lineNumbers ? '<td class="w2ui-col-number"></td>' : '') +
-                        '    <td class="w2ui-grid-data w2ui-expanded1" colspan="100">'+
-                        '       <div id="grid_'+ this.name +'_frec_'+ recid +'_expanded"></div>'+
+                        '    <td class="w2ui-grid-data w2ui-expanded1">'+
+                        '       <div id="grid_'+ this.name +'_frec_'+ id +'_expanded"></div>'+
                         '   </td>'+
                         '</tr>');
 
                 // event before
                 var edata = this.trigger({ phase: 'before', type: 'expand', target: this.name, recid: recid,
-                    box_id: 'grid_'+ this.name +'_rec_'+ recid +'_expanded', fbox_id: 'grid_'+ this.name +'_frec_'+ id +'_expanded' });
+                    box_id: 'grid_'+ this.name +'_rec_'+ id +'_expanded', fbox_id: 'grid_'+ this.name +'_frec_'+ id +'_expanded' });
                 if (edata.isCancelled === true) {
                     $('#grid_'+ this.name +'_rec_'+ id +'_expanded_row').remove();
                     $('#grid_'+ this.name +'_frec_'+ id +'_expanded_row').remove();
                     return false;
                 }
                 // expand column
-                var row1 = $(this.box).find('#grid_'+ this.name +'_rec_'+ recid +'_expanded');
-                var row2 = $(this.box).find('#grid_'+ this.name +'_frec_'+ recid +'_expanded');
+                var row1 = $(this.box).find('#grid_'+ this.name +'_rec_'+ id +'_expanded');
+                var row2 = $(this.box).find('#grid_'+ this.name +'_frec_'+ id +'_expanded');
                 var innerHeight = row1.find('> div:first-child').height();
                 if (row1.height() < innerHeight) {
                     row1.css({ height: innerHeight + 'px' });
@@ -4093,7 +4094,7 @@
                 $('#grid_'+ this.name +'_rec_'+ id).attr('expanded', 'yes').addClass('w2ui-expanded');
                 $('#grid_'+ this.name +'_frec_'+ id).attr('expanded', 'yes').addClass('w2ui-expanded');
                 // $('#grid_'+ this.name +'_rec_'+ id +'_expanded_row').show();
-                $('#grid_'+ this.name +'_cell_'+ this.get(recid, true) +'_expand div').html('-');
+                $('#grid_'+ this.name +'_cell_'+ ind +'_expand div').html('-');
                 rec.w2ui.expanded = true;
                 // event after
                 this.trigger($.extend(edata, { phase: 'after' }));
