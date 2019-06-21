@@ -485,6 +485,7 @@
         onChange           : null,        // called when editable record is changed
         onRestore          : null,        // called when editable record is restored
         onExpand           : null,
+        onRenderExpandButton: null, // called from getExpandButtonHtml
         onCollapse         : null,
         onError            : null,
         onKeydown          : null,
@@ -4095,7 +4096,8 @@
                 $('#grid_'+ this.name +'_rec_'+ id).attr('expanded', 'yes').addClass('w2ui-expanded');
                 $('#grid_'+ this.name +'_frec_'+ id).attr('expanded', 'yes').addClass('w2ui-expanded');
                 // $('#grid_'+ this.name +'_rec_'+ id +'_expanded_row').show();
-                $('#grid_'+ this.name +'_cell_'+ ind +'_expand div').html('-');
+                var html = this.getExpandButtonHtml(true);
+                $('#grid_'+ this.name +'_cell_'+ ind +'_expand div').html(html);
                 rec.w2ui.expanded = true;
                 // event after
                 this.trigger($.extend(edata, { phase: 'after' }));
@@ -4148,7 +4150,8 @@
                 // default action
                 $('#grid_'+ this.name +'_rec_'+ id).removeAttr('expanded').removeClass('w2ui-expanded');
                 $('#grid_'+ this.name +'_frec_'+ id).removeAttr('expanded').removeClass('w2ui-expanded');
-                $('#grid_'+ this.name +'_cell_'+ this.get(recid, true) +'_expand div').html('+');
+                var html = this.getExpandButtonHtml(false);
+                $('#grid_'+ this.name +'_cell_'+ this.get(recid, true) +'_expand div').html(html);
                 $('#grid_'+ obj.name +'_rec_'+ id +'_expanded').css('height', '0px');
                 $('#grid_'+ obj.name +'_frec_'+ id +'_expanded').css('height', '0px');
                 setTimeout(function () {
@@ -7084,6 +7087,17 @@
             }
         },
 
+        getExpandButtonHtml: function (expanded) {
+            var event = jQuery.Event(
+                'renderExpandButton',
+                {
+                    expanded: expanded,
+                    html: expanded ? '-' : '+'
+                });
+            event = this.trigger(event, { target: this.name });
+            return event.html;
+        },
+
         getRecordHTML: function (ind, lineNum, summary) {
             var tmph = '';
             var rec_html1 = '';
@@ -7209,9 +7223,14 @@
             }
             if (this.show.expandColumn) {
                 var tmp_img = '';
-                if (record.w2ui && record.w2ui.expanded === true)  tmp_img = '-'; else tmp_img = '+';
-                if (record.w2ui && record.w2ui.expanded == 'none') tmp_img = '';
-                if (record.w2ui && record.w2ui.expanded == 'spinner') tmp_img = '<div class="w2ui-spinner" style="width: 16px; margin: -2px 2px;"></div>';
+                var expanded = false;
+                if (record.w2ui) {
+                    expanded = null;
+                    if (record.w2ui.expanded == 'spinner') tmp_img = '<div class="w2ui-spinner" style="width: 16px; margin: -2px 2px;"></div>';
+                    else if (record.w2ui.expanded == 'none') tmp_img = '';
+                    else expanded = record.w2ui.expanded === true;
+                }
+                if (expanded !== null) tmp_img = this.getExpandButtonHtml(expanded);
                 rec_html1 +=
                         '<td id="grid_'+ this.name +'_cell_'+ ind +'_expand' + (summary ? '_s' : '') + '" class="w2ui-grid-data w2ui-col-expand">'+
                             (summary !== true ?
