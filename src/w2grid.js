@@ -328,6 +328,7 @@
         fixedBody         : true,       // if false; then grid grows with data
         recordHeight      : 24,         // should be in prototype
         lineNumberWidth   : null,
+        expandColumnWidth : null, // Number of pixels. Must correspond wdith of style ".w2ui-grid .w2ui-grid-body table .w2ui-col-expand".
         keyboard          : true,
         selectType        : 'row',      // can be row|cell
         multiSearch       : true,
@@ -5930,6 +5931,7 @@
             var lineNumberWidth = String(this.total).length * 8 + 10;
             if (lineNumberWidth < 34) lineNumberWidth = 34; // 3 digit width
             if (this.lineNumberWidth != null) lineNumberWidth = this.lineNumberWidth;
+            var expandColumnWidth = isNaN(this.expandColumnWidth) ? 26 : this.expandColumnWidth;
 
             var bodyOverflowX = false;
             var bodyOverflowY = false;
@@ -6038,7 +6040,7 @@
                     - (bodyOverflowY ? w2utils.scrollBarSize() : 0)
                     - (this.show.lineNumbers ? lineNumberWidth : 0)
                     - (this.show.selectColumn ? 26 : 0)
-                    - (this.show.expandColumn ? 26 : 0)
+                    - (this.show.expandColumn ? expandColumnWidth : 0)
                     - 1; // left is 1xp due to border width
                 var width_box = width_max;
                 var percent = 0;
@@ -6130,7 +6132,7 @@
             var fwidth = 1;
             if (this.show.lineNumbers)  fwidth += lineNumberWidth;
             if (this.show.selectColumn) fwidth += 26;
-            if (this.show.expandColumn) fwidth += 26;
+            if (this.show.expandColumn) fwidth += expandColumnWidth;
             for (var i = 0; i < this.columns.length; i++) {
                 if (this.columns[i].hidden) continue;
                 if (this.columns[i].frozen) fwidth += parseInt(this.columns[i].sizeCalculated);
@@ -6150,6 +6152,9 @@
                     // line numbers
                     if ($(el).hasClass('w2ui-col-number')) {
                         $(el).css('width', lineNumberWidth);
+                    }
+                    else if ($(el).hasClass('w2ui-col-expand')) {
+                        $(el).css('width', expandColumnWidth);
                     }
                     // records
                     var ind = $(el).attr('col');
@@ -6196,6 +6201,9 @@
                     // line numbers
                     if ($(el).hasClass('w2ui-col-number')) {
                         $(el).css('width', lineNumberWidth);
+                    }
+                    else if ($(el).hasClass('w2ui-col-expand')) {
+                        $(el).css('width', expandColumnWidth);
                     }
                     // records
                     var ind = $(el).attr('col');
