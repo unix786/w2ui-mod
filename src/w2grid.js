@@ -349,6 +349,7 @@
         fixedBody         : true,       // if false; then grid grows with data
         recordHeight      : 24,         // should be in prototype
         lineNumberWidth   : null,
+        expandColumnWidth : null, // Number of pixels. Must correspond wdith of style ".w2ui-grid .w2ui-grid-body table .w2ui-col-expand".
         keyboard          : true,
         selectType        : 'row',      // can be row|cell
         multiSearch       : true,
@@ -1115,7 +1116,7 @@
 
             // check if a record (or one of its closed children) matches the search data
             function searchRecord(rec) {
-                var fl = 0;
+                var fl  = 0;
                 var orEqual = false;
                 for (var j = 0; j < obj.searchData.length; j++) {
                     var sdata  = obj.searchData[j];
@@ -2083,7 +2084,7 @@
                         if (this.searches.length > 0) {
                             for (var i = 0; i < this.searches.length; i++) {
                                 var search = this.searches[i];
-                                if (search.type == 'text' || (search.type == 'alphanumeric' && w2utils.isAlphaNumeric(value))
+                                if (    search.type == 'text' || (search.type == 'alphanumeric' && w2utils.isAlphaNumeric(value))
                                         || (search.type == 'int' && w2utils.isInt(value)) || (search.type == 'float' && w2utils.isFloat(value))
                                         || (search.type == 'percent' && w2utils.isFloat(value)) || ((search.type == 'hex' || search.type == 'color') && w2utils.isHex(value))
                                         || (search.type == 'currency' && w2utils.isMoney(value)) || (search.type == 'money' && w2utils.isMoney(value))
@@ -2199,7 +2200,7 @@
                 last_multi  = true;
                 last_logic  = logic;
                 for (var i = 0; i < field.length; i++) {
-                    var data = field[i];
+                    var data   = field[i];
                     if (typeof data.value == 'number') data.operator = 'is';
                     if (typeof data.value == 'string') data.operator = this.textSearch;
                     if ($.isArray(data.value)) data.operator = 'in'
@@ -2340,15 +2341,15 @@
         },
 
         searchShowFields: function (forceHide) {
-            var obj = this;
-            var el  = $('#grid_'+ this.name +'_search_all');
+            var obj  = this;
+            var el   = $('#grid_'+ this.name +'_search_all');
             if (forceHide === true) {
                 $(el).w2overlay({ name: obj.name + '-searchFields' });
                 return;
             }
             var html = '<div class="w2ui-select-field"><table><tbody>';
             for (var s = -1; s < this.searches.length; s++) {
-                var search  = this.searches[s];
+                var search = this.searches[s];
                 var sField  = (search ? search.field : null);
                 var column  = this.getColumn(sField);
                 var disable = false;
@@ -2552,7 +2553,7 @@
             var obj = this;
             if (this.last.xhr_offset === 0) {
                 this.lock(w2utils.lang(this.msgRefresh), true);
-            }
+                }
             if (this.last.xhr) try { this.last.xhr.abort(); } catch (e) {}
             // URL
             url = (typeof edata.url != 'object' ? edata.url : edata.url.get);
@@ -2661,12 +2662,12 @@
             var data;
             if (status != 'error') {
                 // default action
-                if (typeof obj.parser == 'function') {
+                        if (typeof obj.parser == 'function') {
                     data = obj.parser(xhr.responseJSON);
-                    if (typeof data != 'object') {
-                        console.log('ERROR: Your parser did not return proper object');
-                    }
-                } else {
+                            if (typeof data != 'object') {
+                                console.log('ERROR: Your parser did not return proper object');
+                            }
+                        } else {
                     data = xhr.responseJSON;
                     if (data == null) {
                         data = {
@@ -2682,70 +2683,70 @@
                             total   : data.length
                         }
                     }
-                }
+                        }
                 if (Array.isArray(data.records)) {
                     // make sure each record has recid
                     data.records.forEach(function (rec, ind) {
                         if (obj.recid) {
                             rec.recid = obj.parseField(rec, obj.recid);
-                        }
+                    }
                         if (rec.recid == null) {
                             rec.recid = 'recid-' + ind;
                         }
                     })
                 }
-                if (data['status'] == 'error') {
-                    obj.error(data['message']);
-                } else {
-                    if (cmd == 'get') {
-                        if (data.total == null) data.total = -1;
-                        if (data.records == null) {
-                            data.records = [];
-                        }
-                        if (data.records.length == this.limit) {
+                    if (data['status'] == 'error') {
+                        obj.error(data['message']);
+                    } else {
+                        if (cmd == 'get') {
+                            if (data.total == null) data.total = -1;
+                            if (data.records == null) {
+                                data.records = [];
+                            }
+                            if (data.records.length == this.limit) {
                             var loaded = this.records.length + data.records.length
                             this.last.xhr_hasMore = (loaded == this.total ? false : true);
-                        } else {
-                            this.last.xhr_hasMore = false;
+                            } else {
+                                this.last.xhr_hasMore = false;
                             this.total = this.offset + this.last.xhr_offset + data.records.length;
-                        }
+                            }
                         if (!this.last.xhr_hasMore) {
                             // if no morerecords, then hide spinner
                             $('#grid_'+ this.name +'_rec_more, #grid_'+ this.name +'_frec_more').hide()
                         }
-                        if (this.last.xhr_offset === 0) {
-                            this.records = [];
-                            this.summary = [];
-                            if (w2utils.isInt(data.total)) this.total = parseInt(data.total);
-                        } else {
-                            if (data.total != -1 && parseInt(data.total) != parseInt(this.total)) {
-                                this.message(w2utils.lang(this.msgNeedReload), function () {
-                                    delete this.last.xhr_offset;
-                                    this.reload();
-                                }.bind(this));
-                                return;
+                            if (this.last.xhr_offset === 0) {
+                                this.records = [];
+                                this.summary = [];
+                                if (w2utils.isInt(data.total)) this.total = parseInt(data.total);
+                            } else {
+                                if (data.total != -1 && parseInt(data.total) != parseInt(this.total)) {
+                                    this.message(w2utils.lang(this.msgNeedReload), function () {
+                                        delete this.last.xhr_offset;
+                                        this.reload();
+                                    }.bind(this));
+                                    return;
+                                }
+                            }
+                            // records
+                            if (data.records) {
+                                for (var r = 0; r < data.records.length; r++) {
+                                    this.records.push(data.records[r]);
+                                }
+                            }
+                            // summary records (if any)
+                            if (data.summary) {
+                                this.summary = [];
+                                for (var r = 0; r < data.summary.length; r++) {
+                                    this.summary.push(data.summary[r]);
+                                }
                             }
                         }
-                        // records
-                        if (data.records) {
-                            for (var r = 0; r < data.records.length; r++) {
-                                this.records.push(data.records[r]);
-                            }
-                        }
-                        // summary records (if any)
-                        if (data.summary) {
-                            this.summary = [];
-                            for (var r = 0; r < data.summary.length; r++) {
-                                this.summary.push(data.summary[r]);
-                            }
+                        if (cmd == 'delete') {
+                            this.reset(); // unselect old selections
+                            this.reload();
+                            return;
                         }
                     }
-                    if (cmd == 'delete') {
-                        this.reset(); // unselect old selections
-                        this.reload();
-                        return;
-                    }
-                }
             } else {
                 data = {
                     status       : 'error',
@@ -4961,8 +4962,8 @@
                         w2ui[obj.name].paste(text);
                     } else {
                         // for older browsers
-                        var el = this;
-                        setTimeout(function () { w2ui[obj.name].paste(el.value); el.value = ''; }, 1)
+                    var el = this;
+                    setTimeout(function () { w2ui[obj.name].paste(el.value); el.value = ''; }, 1)
                     }
                 })
                 .on('keydown', function (event) {
@@ -4982,7 +4983,7 @@
                         if (w2ui[obj.name] == null) {
                             $(window).off('resize.w2ui-'+ obj.name)
                         } else {
-                            w2ui[obj.name].resize();
+                        w2ui[obj.name].resize();
                         }
                     });
             }
@@ -5155,7 +5156,7 @@
                             ghost_line.css({
                                 'border-top': '2px solid transparent'
                             });
-                        }
+                    }
                     }
                     var ghost = $('#grid_'+ obj.name + '_ghost');
                     ghost.css({
@@ -6005,7 +6006,7 @@
                     var td  = $(el).parent();
                     $(el).css({
                         "height"      : td.height(),
-                        "margin-left" : (td.width() - 3) + 'px'
+                        "margin-left"     : (td.width() - 3) + 'px'
                     });
                 });
         },
@@ -6079,6 +6080,7 @@
             var lineNumberWidth = String(this.total).length * 8 + 10;
             if (lineNumberWidth < 34) lineNumberWidth = 34; // 3 digit width
             if (this.lineNumberWidth != null) lineNumberWidth = this.lineNumberWidth;
+            var expandColumnWidth = isNaN(this.expandColumnWidth) ? 26 : this.expandColumnWidth;
 
             var bodyOverflowX = false;
             var bodyOverflowY = false;
@@ -6189,7 +6191,7 @@
                     - (this.show.lineNumbers ? lineNumberWidth : 0)
                     // - (this.show.orderColumn ? 26 : 0)
                     - (this.show.selectColumn ? 26 : 0)
-                    - (this.show.expandColumn ? 26 : 0)
+                    - (this.show.expandColumn ? expandColumnWidth : 0)
                     - 1; // left is 1xp due to border width
                 var width_box = width_max;
                 var percent = 0;
@@ -6279,10 +6281,10 @@
 
             // find width of frozen columns
             var fwidth = 1;
-            if (this.show.lineNumbers) fwidth += lineNumberWidth;
+            if (this.show.lineNumbers)  fwidth += lineNumberWidth;
             if (this.show.selectColumn) fwidth += 26;
             // if (this.show.orderColumn) fwidth += 26;
-            if (this.show.expandColumn) fwidth += 26;
+            if (this.show.expandColumn) fwidth += expandColumnWidth;
             for (var i = 0; i < this.columns.length; i++) {
                 if (this.columns[i].hidden) continue;
                 if (this.columns[i].frozen) fwidth += parseInt(this.columns[i].sizeCalculated);
@@ -6302,6 +6304,9 @@
                     // line numbers
                     if ($(el).hasClass('w2ui-col-number')) {
                         $(el).css('width', lineNumberWidth);
+                    }
+                    else if ($(el).hasClass('w2ui-col-expand')) {
+                        $(el).css('width', expandColumnWidth);
                     }
                     // records
                     var ind = $(el).attr('col');
@@ -6348,6 +6353,9 @@
                     // line numbers
                     if ($(el).hasClass('w2ui-col-number')) {
                         $(el).css('width', lineNumberWidth);
+                    }
+                    else if ($(el).hasClass('w2ui-col-expand')) {
+                        $(el).css('width', expandColumnWidth);
                     }
                     // records
                     var ind = $(el).attr('col');
@@ -6709,7 +6717,7 @@
                     for (var jj = ii; jj < ii + colg.span; jj++) {
                         if (obj.columns[jj] && !obj.columns[jj].hidden) {
                             colspan++;
-                        }
+                    }
                     }
                     if (i == obj.columnGroups.length-1) {
                         colspan = 100; // last column
@@ -7211,24 +7219,24 @@
                     this.request('get');
                 }
                 // scroll function
-                var more = $('#grid_'+ this.name +'_rec_more, #grid_'+ this.name +'_frec_more');
-                more.show()
+                    var more = $('#grid_'+ this.name +'_rec_more, #grid_'+ this.name +'_frec_more');
+                        more.show()
                     .eq(1) // only main table
                     .off('.load-more')
                     .on('click.load-more', function () {
                         // show spinner
                         $(this).find('td').html('<div><div style="width: 20px; height: 20px;" class="w2ui-spinner"></div></div>');
                         // load more
-                        obj.last.pull_more = true;
-                        obj.last.xhr_offset += obj.limit;
-                        obj.request('get');
+                                obj.last.pull_more = true;
+                                obj.last.xhr_offset += obj.limit;
+                                obj.request('get');
                     })
                     .find('td')
                     .html(obj.autoLoad
                         ? '<div><div style="width: 20px; height: 20px;" class="w2ui-spinner"></div></div>'
                         : '<div style="padding-top: 15px">'+ w2utils.lang('Load') + ' ' + obj.limit + ' ' + w2utils.lang('More') + '...</div>'
                     )
-            }
+                    }
 
             function markSearch() {
                 // mark search
@@ -7560,7 +7568,7 @@
                     var func = w2utils.formatters[tmp[0]];
                     if (col.options && col.options.autoFormat === false) {
                         func = null;
-                    }
+                }
                     data = (typeof func == 'function' ? func(data, tmp[1], record) : '');
                     data = '<div style="'+ style +'" title="'+ getTitle(data) +'">' + infoBubble + String(data) + '</div>';
                 }
@@ -7576,7 +7584,7 @@
                     infoBubble = '';
                 }
                 data = '<div style="'+ style +'" title="'+ getTitle(data) +'">' + infoBubble + String(data) + '</div>';
-            }
+                    }
             if (data == null) data = '';
             // --> cell TD
             if (typeof col.render == 'string') {
