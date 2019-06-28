@@ -65,7 +65,7 @@ module.exports = function (grunt) {
             w2ui: {
                 options: {
                     banner: w2ui,
-		    sourceMap: true
+		    sourceMap: false
                 },
                 src: [
                     'src/w2utils.js',
