@@ -4107,7 +4107,7 @@
             return true;
         },
 
-        collapse: function (recid) {
+        collapse: function (recid, fast) {
             var obj  = this;
             var ind  = this.get(recid, true);
             var rec  = this.records[ind];
@@ -4161,14 +4161,16 @@
                 $('#grid_'+ this.name +'_cell_'+ this.get(recid, true) +'_expand div').html(html);
                 $('#grid_'+ obj.name +'_rec_'+ id +'_expanded').css('height', '0px');
                 $('#grid_'+ obj.name +'_frec_'+ id +'_expanded').css('height', '0px');
-                setTimeout(function () {
+                var afterCollapse = function () {
                     $('#grid_'+ obj.name +'_rec_'+ id +'_expanded_row').remove();
                     $('#grid_'+ obj.name +'_frec_'+ id +'_expanded_row').remove();
                     rec.w2ui.expanded = false;
                     // event after
                     obj.trigger($.extend(edata, { phase: 'after' }));
                     obj.resizeRecords();
-                }, 300);
+                };
+                if (fast) afterCollapse();
+                else setTimeout(afterCollapse, 300);
             }
             return true;
 
@@ -4694,6 +4696,14 @@
             }
 
             // -- body
+            var expandedRecs = [];
+            for (var t = 0; t < this.records.length; t++) {
+                var rec = this.records[t];
+                if (rec.w2ui && rec.w2ui.expanded === true) {
+                    expandedRecs.push(rec.recid);
+                    //obj.collapse(rec.recid, true);
+                }
+            }
             this.scroll(); // need to calculate virtual scolling for columns
             var recHTML  = this.getRecordsHTML();
             var colHTML  = this.getColumnsHTML();
@@ -4754,6 +4764,11 @@
             } else if ($('#grid_'+ this.name +'_empty_msg').length > 0) {
                 $('#grid_'+ this.name +'_empty_msg').remove();
             }
+            setTimeout(function () {
+                for (var k = 0; k < expandedRecs.length; k++) {
+                    obj.expand(expandedRecs[k]);
+                }
+            }, 300);
             // show summary records
             if (this.summary.length > 0) {
                 var sumHTML = this.getSummaryHTML();
