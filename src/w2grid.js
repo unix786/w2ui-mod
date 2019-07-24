@@ -7170,11 +7170,12 @@
             var rec_class = (record.w2ui ? record.w2ui.class : '');
             if (rec_class == null || typeof rec_class != 'string') rec_class = '';
             // render TR
+            var isExpanded = record.w2ui && record.w2ui.expanded === true;
             rec_html1 += '<tr id="grid_'+ this.name +'_frec_'+ record.recid +'" recid="'+ record.recid +'" line="'+ lineNum +'" index="'+ ind +'" '+
                 ' class="'+ (lineNum % 2 === 0 ? 'w2ui-even' : 'w2ui-odd') + ' w2ui-record ' + rec_class +
                     (isRowSelected && this.selectType == 'row' ? ' w2ui-selected' : '') +
                     (record.w2ui && record.w2ui.editable === false ? ' w2ui-no-edit' : '') +
-                    (record.w2ui && record.w2ui.expanded === true ? ' w2ui-expanded' : '') + '" ' +
+                    (isExpanded ? ' w2ui-expanded' : '') + '" ' +
                 (summary !== true ?
                     (w2utils.isIOS ?
                         '    onclick  = "w2ui[\''+ this.name +'\'].dblClick(jQuery(this).attr(\'recid\'), event);"'
@@ -7196,7 +7197,7 @@
                 ' class="'+ (lineNum % 2 === 0 ? 'w2ui-even' : 'w2ui-odd') + ' w2ui-record ' + rec_class +
                     (isRowSelected && this.selectType == 'row' ? ' w2ui-selected' : '') +
                     (record.w2ui && record.w2ui.editable === false ? ' w2ui-no-edit' : '') +
-                    (record.w2ui && record.w2ui.expanded === true ? ' w2ui-expanded' : '') + '" ' +
+                    (isExpanded ? ' w2ui-expanded' : '') + '" ' +
                 (summary !== true ?
                     (w2utils.isIOS ?
                         '    onclick  = "var obj = w2ui[\''+ this.name +'\']; obj.dblClick(jQuery(this).attr(\'recid\'), event);"'
@@ -7236,15 +7237,15 @@
                         '</td>';
             }
             if (this.show.expandColumn) {
-                var tmp_img = '';
-                var expanded = false;
-                if (record.w2ui) {
-                    expanded = null;
+                var tmp_img;
+                if (isExpanded) {
+                    tmp_img = this.getExpandButtonHtml(true);
+                }
+                else if (record.w2ui) {
                     if (record.w2ui.expanded == 'spinner') tmp_img = '<div class="w2ui-spinner" style="width: 16px; margin: -2px 2px;"></div>';
                     else if (record.w2ui.expanded == 'none') tmp_img = '';
-                    else expanded = record.w2ui.expanded === true;
+                    else tmp_img = this.getExpandButtonHtml(false);
                 }
-                if (expanded !== null) tmp_img = this.getExpandButtonHtml(expanded);
                 rec_html1 +=
                         '<td id="grid_'+ this.name +'_cell_'+ ind +'_expand' + (summary ? '_s' : '') + '" class="w2ui-grid-data w2ui-col-expand">'+
                             (summary !== true ?
@@ -7255,6 +7256,9 @@
                             :
                             '' ) +
                         '</td>';
+            }
+            if (isExpanded) {
+
             }
             // insert empty first column
             rec_html2 += '<td class="w2ui-grid-data-spacer" col="start" style="border-right: 0"></td>';
