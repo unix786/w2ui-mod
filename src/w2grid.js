@@ -4143,7 +4143,13 @@
                 this.refresh();
                 obj.trigger($.extend(edata, { phase: 'after' }));
             } else {
-                if ($('#grid_'+ this.name +'_rec_'+ id +'_expanded_row').length === 0 || this.show.expandColumn !== true) return false;
+                if ($('#grid_' + this.name + '_rec_' + id + '_expanded_row').length === 0) {
+                    rec.w2ui.expanded = false;
+                    // Хорошо бы здесь проверить программно ли была вызвана процедура.
+                    // Если пользователь нажал на кнопку, он наверное ожидает изменения.
+                    if (this.show.expandColumn === true) this.expand(recid);
+                    return false;
+                }
                 // event before
                 var edata = this.trigger({ phase: 'before', type: 'collapse', target: this.name, recid: recid,
                     box_id: 'grid_'+ this.name +'_rec_'+ id +'_expanded', fbox_id: 'grid_'+ this.name +'_frec_'+ id +'_expanded' });
