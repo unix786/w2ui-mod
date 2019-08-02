@@ -212,7 +212,7 @@
                             for (var j = 0; j < item.items.length; j++) {
                                 if (item.items[j].id == tmp[1] || (item.items[j].id == null && item.items[j].text == tmp[1])) {
                                     if (returnIndex == true) return i; else return item.items[j];
-                                }
+                    }
                             }
                         }
                     }
@@ -606,7 +606,7 @@
                         } else {
                             if (['menu', 'menu-radio', 'menu-check'].indexOf(it.type) != -1) {
                                 drop.w2menu('refresh', { items: it.items });
-                            }
+                }
                         }
                     }
                 }
@@ -715,7 +715,7 @@
                 case 'radio':
                 case 'drop':
                     html += '<table cellpadding="0" cellspacing="0" '+
-                            '       class="w2ui-button '+ (item.checked ? 'checked' : '') +' '+ (item.class ? item.class : '') +'" '+
+                            '       class="w2ui-button'+ (item.checked ? ' checked' : '') + (item.class ? ' ' + item.class : '') + '" '+
                             '       onclick     = "var el=w2ui[\''+ this.name + '\']; if (el) el.click(\''+ item.id +'\', event);" '+
                             '       onmouseenter = "' + (!item.disabled ? "jQuery(this).addClass('over'); w2ui['"+ this.name +"'].tooltipShow('"+ item.id +"', event);" : "") + '"'+
                             '       onmouseleave = "' + (!item.disabled ? "jQuery(this).removeClass('over').removeClass('down'); w2ui['"+ this.name +"'].tooltipHide('"+ item.id +"', event);" : "") + '"'+
@@ -800,7 +800,7 @@
                 if (edata.isCancelled === true) return;
 
                 // route processing
-                var it = event.subItem;
+                var it   = event.subItem;
                 var item = this.get(event.item.id);
                 var items = item.items;
                 if (typeof items == 'function') items = item.items();
@@ -813,7 +813,7 @@
                                 item.items.forEach(function (item) {
                                     if (item.checked === true) delete item.checked;
                                 })
-                            }
+                    }
                         });
                     }
                     it.checked = true;
@@ -836,15 +836,15 @@
                         // recursive
                         (function checkNested(items) {
                             items.forEach(function (sub) {
-                                if (sub.group === it.group) {
-                                    var ind = item.selected.indexOf(sub.id);
-                                    if (ind != -1) {
-                                        if (sub.id != it.id) unchecked.push(sub.id);
-                                        item.selected.splice(ind, 1);
-                                    }
+                            if (sub.group === it.group) {
+                                var ind = item.selected.indexOf(sub.id);
+                                if (ind != -1) {
+                                    if (sub.id != it.id) unchecked.push(sub.id);
+                                    item.selected.splice(ind, 1);
                                 }
+                            }
                                 if (Array.isArray(sub.items)) checkNested(sub.items)
-                            });
+                        });
                         })(items);
                         var ind = item.selected.indexOf(it.id);
                         if (ind == -1) {
