@@ -123,6 +123,7 @@ var w2utils = (function ($) {
         setCursorPosition : setCursorPosition,
         testLocalStorage  : testLocalStorage,
         hasLocalStorage   : testLocalStorage(),
+        getParentGrid : getParentGrid,
         // some internal variables
         isIOS : ((navigator.userAgent.toLowerCase().indexOf('iphone') !== -1 ||
                  navigator.userAgent.toLowerCase().indexOf('ipod') !== -1 ||
@@ -1849,6 +1850,20 @@ var w2utils = (function ($) {
             if (codeA != codeB) return (codeA < codeB) ? -1 : 1;
         }
         return 0;
+    }
+
+    // https://stackoverflow.com/a/36894871/5050045
+    function isElement(obj) {
+        return obj instanceof Element || obj instanceof HTMLDocument;
+    }
+
+    function getParentGrid(obj) {
+        var element;
+        if (isElement(obj)) element = obj;
+        else if (isElement(obj.box)) element = obj.box; // http://w2ui.com/web/docs/1.5/common.box
+        else throw "Invalid argument";
+
+        return w2ui[jQuery(element).parents('div.w2ui-grid').attr('name')];
     }
 })(jQuery);
 
