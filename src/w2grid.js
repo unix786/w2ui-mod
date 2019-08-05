@@ -304,6 +304,7 @@
             toolbarReload   : true,
             toolbarColumns  : true,
             toolbarSearch   : true,
+            toolbarSearchLayout2: false, // Альтернативный дизайн поиска: отдельное поле для выбора колонки, по которой искать.
             toolbarInput    : true,
             toolbarAdd      : false,
             toolbarEdit     : false,
@@ -416,7 +417,7 @@
             'columns'  : { type: 'drop', id: 'w2ui-column-on-off', icon: 'w2ui-icon-columns', tooltip: 'Show/hide columns', arrow: false, html: '' },
             'search'   : { type: 'html',   id: 'w2ui-search',
                             html: '<div class="w2ui-icon icon-search-down w2ui-search-down" '+
-                                  'onclick="var obj = w2ui[jQuery(this).parents(\'div.w2ui-grid\').attr(\'name\')]; obj.searchShowFields();"></div>'
+                                  'onclick="w2utils.getParentGrid(this).searchShowFields();"></div>'
                           },
             'search-go': { type: 'drop',  id: 'w2ui-search-advanced', icon: 'w2ui-icon-search', text: 'Search', tooltip: 'Open Search Fields' },
             'add'      : { type: 'button', id: 'w2ui-add', text: 'Add New', tooltip: 'Add new record', icon: 'w2ui-icon-plus' },
@@ -5633,11 +5634,12 @@
                 if (this.show.toolbarReload || this.show.toolbarColumns) {
                     this.toolbar.items.push({ type: 'break', id: 'w2ui-break0' });
                 }
+                var searchLayout2 = this.show.toolbarSearchLayout2;
                 if (this.show.toolbarInput) {
                     var html =
                         '<div class="w2ui-toolbar-search">'+
                         '<table cellpadding="0" cellspacing="0"><tbody><tr>'+
-                        '    <td>'+ this.buttons['search'].html +'</td>'+
+                        (searchLayout2 ? '' : '    <td>'+ this.buttons['search'].html +'</td>')+
                         '    <td>'+
                         '        <input type="text" id="grid_'+ this.name +'_search_all" class="w2ui-search-all" tabindex="-1" '+
                         '            placeholder="'+ w2utils.lang(this.last.label) +'" value="'+ this.last.search +'"'+
@@ -5666,6 +5668,7 @@
                     this.toolbar.items.push({ type: 'html', id: 'w2ui-search', html: html });
                 }
                 if (this.show.toolbarSearch && this.multiSearch && this.searches.length > 0) {
+                    if (searchLayout2) this.toolbar.items.push($.extend(true, {}, this.buttons['search']));
                     this.toolbar.items.push($.extend(true, {}, this.buttons['search-go']));
                 }
                 if ((this.show.toolbarSearch || this.show.toolbarInput)
