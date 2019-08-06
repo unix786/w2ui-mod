@@ -283,6 +283,8 @@
     // -- Implementation of core functionality
 
     w2grid.prototype = {
+        /** temp variables for internal use */
+        tmp: {},
         header       : '',
         url          : '',
         limit        : 100,
@@ -2079,7 +2081,7 @@
                             }
                         }
                     } else {
-                        var el = $('#grid_'+ this.name +'_search_all');
+                        var el = this.getSearchAll();
                         var search = this.getSearch(field);
                         if (search == null) search = { field: field, type: 'text' };
                         if (search.field == field) this.last.label = search.label;
@@ -2218,6 +2220,17 @@
             $().w2overlay({ name: this.name + '-searchOverlay' });
         },
 
+        /**Search input field. */
+        getSearchAllId: function () {
+            return 'grid_' + this.name + '_search_all';
+        },
+
+        getSearchAll: function () {
+            if (this.tmp.searchAll) return this.tmp.searchAll;
+            this.tmp.searchAll = $('#' + this.getSearchAllId());
+            return this.tmp.searchAll;
+        },
+
         searchReset: function (noRefresh) {
             var searchData = [];
             var hasHiddenSearches = false;
@@ -2266,17 +2279,23 @@
             this.last.selection.columns = {};
             // -- clear all search field
             this.searchClose();
-            $('#grid_'+ this.name +'_search_all').val('').removeData('selected');
+            this.getSearchAll().val('').removeData('selected');
             // apply search
             if (!noRefresh) this.reload();
             // event after
             this.trigger($.extend(edata, { phase: 'after' }));
         },
 
-        searchShowFields: function () {
-            var obj  = this;
-            var el   = $('#grid_'+ this.name +'_search_all');
+        /**
+         * Shows column selection overlay for toolbar filter.
+         * @param {any} buttonId target element Id to show overlay.
+         */
+        searchShowFields: function (buttonId) {
+            var grid = this;
+            var el   = this.getSearchAll();
+            if (!buttonId) button = el[0].id;
             var html = '<div class="w2ui-select-field"><table><tbody>';
+            var overlayName = grid.name + '-searchFields';
             for (var s = -1; s < this.searches.length; s++) {
                 var search = this.searches[s];
                 var column = this.getColumn(search && search.field);
@@ -2293,8 +2312,8 @@
                     search.label = search.caption;
                 }
 
-                html += '<tr '+ (w2utils.isIOS ? 'onTouchStart' : 'onClick') +'="w2ui[\''+ this.name +'\'].initAllField(\''+ search.field +'\');'+
-                        '      event.stopPropagation(); jQuery(\'#grid_'+ this.name +'_search_all\').w2overlay({ name: \''+ this.name +'-searchFields\' });">'+
+                html += '<tr '+ (w2utils.isIOS ? 'onTouchStart' : 'onClick') +'="w2ui[\''+ grid.name +'\'].initAllField(\''+ search.field +'\');'+
+                        '      event.stopPropagation(); jQuery(\'' + buttonId + '\').w2overlay({ name: \''+ overlayName + '\' });">'+
                         '   <td>'+
                         '       <span class="w2ui-column-check w2ui-icon-'+ (search.field == this.last.field ? 'check' : 'empty') +'"></span>'+
                         '   </td>'+
@@ -2304,12 +2323,12 @@
             html += "</tbody></table></div>";
             // need timer otherwise does nto show with list type
             setTimeout(function () {
-                $(el).w2overlay({ html: html, name: obj.name + '-searchFields', left: -10 });
+                $('#' + buttonId).w2overlay({ html: html, name: overlayName, left: -10 });
             }, 1);
         },
 
         initAllField: function (field, value) {
-            var el = $('#grid_'+ this.name +'_search_all');
+            var el = this.getSearchAll();
             if (field == 'all') {
                 var search = { field: 'all', label: w2utils.lang('All Fields') };
                 el.w2field('clear');
@@ -4586,7 +4605,7 @@
             // -- make sure search is closed
             this.searchClose();
             // search placeholder
-            var el = $('#grid_'+ obj.name +'_search_all');
+            var el = this.getSearchAll();
             if (!this.multiSearch && this.last.field == 'all' && this.searches.length > 0) {
                 this.last.field = this.searches[0].field;
                 this.last.label = this.searches[0].label;
@@ -5641,7 +5660,7 @@
                         '<table cellpadding="0" cellspacing="0"><tbody><tr>'+
                         (searchLayout2 ? '' : '    <td>'+ this.buttons['search'].html +'</td>')+
                         '    <td>'+
-                        '        <input type="text" id="grid_'+ this.name +'_search_all" class="w2ui-search-all" tabindex="-1" '+
+                        '        <input type="text" id="' + this.getSearchAllId() + '" class="w2ui-search-all" tabindex="-1" '+
                         '            placeholder="'+ w2utils.lang(this.last.label) +'" value="'+ this.last.search +'"'+
                         '            onfocus="clearTimeout(w2ui[\''+ this.name +'\'].last.kbd_timer);"'+
                         '            onkeydown="if (event.keyCode == 13 &amp;&amp; w2utils.isIE) this.onchange();"'+
