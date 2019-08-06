@@ -166,6 +166,14 @@
             }
         },
 
+        /**
+         * Gets element id from unescaped item id (key).
+         * @param {any} itemKey id from items array.
+         */
+        getFullItemId: function(itemKey) {
+            return 'tb_' + this.name + '_item_' + w2utils.escapeId(itemKey);
+        },
+
         remove: function () {
             var removed = 0;
             for (var a = 0; a < arguments.length; a++) {
@@ -173,7 +181,7 @@
                 if (!it || String(arguments[a]).indexOf(':') != -1) continue;
                 removed++;
                 // remove from screen
-                $(this.box).find('#tb_'+ this.name +'_item_'+ w2utils.escapeId(it.id)).remove();
+                $(this.box).find('#' + this.getFullItemId(it.id)).remove();
                 // remove from array
                 var ind = this.get(it.id, true);
                 if (ind != null) this.items.splice(ind, 1);

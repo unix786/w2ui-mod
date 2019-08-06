@@ -123,7 +123,13 @@ var w2utils = (function ($) {
         setCursorPosition : setCursorPosition,
         testLocalStorage  : testLocalStorage,
         hasLocalStorage   : testLocalStorage(),
-        getParentGrid : getParentGrid,
+        getParentGrid: getParentGrid,
+        /**
+         * Gets an element reference from an object.
+         * @throws "Invalid argument".
+         */
+        asElement: asElement,
+        isUndefined: isUndefined,
         // some internal variables
         isIOS : ((navigator.userAgent.toLowerCase().indexOf('iphone') !== -1 ||
                  navigator.userAgent.toLowerCase().indexOf('ipod') !== -1 ||
@@ -1852,18 +1858,35 @@ var w2utils = (function ($) {
         return 0;
     }
 
-    // https://stackoverflow.com/a/36894871/5050045
+    /**
+     * True if obj is Element or HTMLDocument.
+     * https://stackoverflow.com/a/36894871/5050045
+     */
     function isElement(obj) {
         return obj instanceof Element || obj instanceof HTMLDocument;
     }
 
-    function getParentGrid(obj) {
-        var element;
-        if (isElement(obj)) element = obj;
-        else if (isElement(obj.box)) element = obj.box; // http://w2ui.com/web/docs/1.5/common.box
-        else throw "Invalid argument";
+    /**https://stackoverflow.com/a/7952926/5050045 */
+    function isUndefined(obj) {
+        return typeof obj === 'undefined';
+    }
 
-        return w2ui[jQuery(element).parents('div.w2ui-grid').attr('name')];
+    /**
+     * Gets an element reference from an object.
+     * @throws "Invalid argument".
+     */
+    function asElement(obj) {
+        if (isElement(obj) || isUndefined(obj)) return obj;
+        if (isElement(obj.box)) return obj.box; // http://w2ui.com/web/docs/1.5/common.box
+        throw "Invalid argument";
+    }
+
+    /**
+     * Returns parent grid as w2ui object.
+     * @param {any} obj element or w2ui object.
+     */
+    function getParentGrid(obj) {
+        return w2ui[jQuery(asElement(obj)).parents('div.w2ui-grid').attr('name')];
     }
 })(jQuery);
 
