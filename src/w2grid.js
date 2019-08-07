@@ -185,12 +185,14 @@
         this.total        = 0;        // server total
         this.recid        = null;     // field from records to be used as recid
 
-        // internal
+        /** internal properties */
         this.last = {
             field     : '',
             label     : '',
             logic     : 'OR',
             search    : '',
+            /** Reference to a jQuery object. */
+            searchAll: null,
             searchIds : [],
             selection : {
                 indexes : [],
@@ -304,8 +306,6 @@
     // -- Implementation of core functionality
 
     w2grid.prototype = {
-        /** temp variables for internal use */
-        tmp: {},
         header       : '',
         url          : '',
         limit        : 100,
@@ -2293,10 +2293,11 @@
             return 'grid_' + this.name + '_search_all';
         },
 
+        /**Gets the "search_all" input field in the toolbar. Returns a jQuery object. */
         getSearchAll: function () {
-            if (this.tmp.searchAll) return this.tmp.searchAll;
-            this.tmp.searchAll = $('#' + this.getSearchAllId());
-            return this.tmp.searchAll;
+            if (this.last.searchAll) return this.last.searchAll;
+            this.last.searchAll = $('#' + this.getSearchAllId());
+            return this.last.searchAll;
         },
 
         searchReset: function (noRefresh) {
@@ -2409,7 +2410,7 @@
             html += "</tbody></table></div>";
 
             if ($('#w2ui-overlay-'+ overlayName).length == 1) html = '';  // hide if visible
-            // need timer otherwise does nto show with list type
+            // need timer otherwise does not show with list type
             setTimeout(function () {
                 $('#' + buttonId).w2overlay({ html: html, name: overlayName, left: -10 });
             }, 1);
@@ -2442,7 +2443,13 @@
                 this.last.field = search.field;
                 this.last.label = search.label;
             }
-            el.attr('placeholder', w2utils.lang(search.label || search.caption || search.field));
+            var fieldName = w2utils.lang(search.label || search.caption || search.field);
+            if (this.show.toolbarSearchLayout2) {
+                this.toolbar.set(this.buttons['search'].id, { text: fieldName });
+            }
+            else {
+                el.attr('placeholder', fieldName);
+            }
             $().w2overlay({ name: this.name + '-searchFields' });
         },
 
@@ -4682,11 +4689,13 @@
             for (var s = 0; s < this.searches.length; s++) {
                 if (this.searches[s].field == this.last.field) this.last.label = this.searches[s].label;
             }
-            if (this.last.multi) {
-                el.attr('placeholder', '[' + w2utils.lang('Multiple Fields') + ']');
-                el.w2field('clear');
-            } else {
-                el.attr('placeholder', w2utils.lang(this.last.label));
+            if (!this.show.toolbarSearchLayout2) {
+                if (this.last.multi) {
+                    el.attr('placeholder', '[' + w2utils.lang('Multiple Fields') + ']');
+                    el.w2field('clear');
+                } else {
+                    el.attr('placeholder', w2utils.lang(this.last.label));
+                }
             }
             if (el.val() != this.last.search) {
                 var val = this.last.search;
@@ -5786,7 +5795,9 @@
                     this.toolbar.items.push({ type: 'break', id: 'w2ui-break0' });
                 }
                 var searchLayout2 = this.show.toolbarSearchLayout2;
+                var searchLabel = null;
                 if (this.show.toolbarInput) {
+                    searchLabel = w2utils.lang(this.last.label);
                     var html =
                         '<div class="w2ui-toolbar-search">'+
                         '<table cellpadding="0" cellspacing="0"><tbody><tr>'+
@@ -5794,7 +5805,7 @@
                         '    <td>'+
                         '        <input type="text" id="' + this.getSearchAllId() + '" class="w2ui-search-all" tabindex="-1" '+
                         '            autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"'+
-                        '            placeholder="'+ w2utils.lang(this.last.label) +'" value="'+ this.last.search +'"'+
+                        '            placeholder="'+ w2utils.lang('Search') +'" value="'+ this.last.search +'"'+
                         '            onfocus="var grid = w2ui[\''+ this.name +'\']; clearTimeout(grid.last.kbd_timer); grid.searchShowFields(true); grid.searchClose()"'+
                         '            onkeydown="if (event.keyCode == 13 &amp;&amp; w2utils.isIE) this.onchange();"'+
                         '            onchange="'+
@@ -5820,7 +5831,11 @@
                     this.toolbar.items.push({ type: 'html', id: 'w2ui-search', html: html });
                 }
                 if (this.show.toolbarSearch && this.multiSearch && this.searches.length > 0) {
-                    if (searchLayout2) this.toolbar.items.push($.extend(true, {}, this.buttons['search']));
+                    if (searchLayout2) {
+                        var searchSelector = $.extend(true, {}, this.buttons['search']);
+                        searchSelector.text = searchLabel || w2utils.lang('All Fields');
+                        this.toolbar.items.push(searchSelector);
+                    }
                     this.toolbar.items.push($.extend(true, {}, this.buttons['search-go']));
                 }
                 if ((this.show.toolbarSearch || this.show.toolbarInput)
