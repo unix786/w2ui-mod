@@ -92,6 +92,11 @@ var w2utils = (function ($) {
         unlock          : unlock,
         message         : message,
         naturalCompare  : naturalCompare,
+        /**
+         * Gets a localized version of a phrase.
+         * @param {any} phrase What to look for.
+         * @param {any} fallbackPhrase Alternative (may also be localized). If null, will return null. If undefined, will return phrase argument.
+         */
         lang            : lang,
         locale          : locale,
         getSize         : getSize,
@@ -1487,9 +1492,19 @@ var w2utils = (function ($) {
         return w;
     }
 
-    function lang (phrase) {
+    /**
+     * Gets a localized version of a phrase.
+     * @param {any} phrase What to look for.
+     * @param {any} fallbackPhrase Alternative (may also be localized). If null, will return null. If undefined, will return phrase argument.
+     */
+    function lang (phrase, fallbackPhrase) {
         var translation = this.settings.phrases[phrase];
-        if (translation == null) return phrase; else return translation;
+        if (translation == null) {
+            if (fallbackPhrase) return this.lang(fallbackPhrase);
+            else if (fallbackPhrase === null) return null;
+            else return phrase;
+        }
+        return translation;
     }
 
     function locale (locale, callBack) {
