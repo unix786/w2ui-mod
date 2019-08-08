@@ -313,6 +313,7 @@
         postData     : {},
         routeData    : {},
         httpHeaders  : {},
+        /** http://w2ui.com/web/docs/1.5/w2grid.show */
         show: {
             header          : false,
             toolbar         : false,
@@ -2446,6 +2447,7 @@
             var fieldName = w2utils.lang(search.label || search.caption || search.field);
             if (this.show.toolbarSearchLayout2) {
                 this.toolbar.set(this.buttons['search'].id, { text: fieldName });
+                el.attr('placeholder', w2utils.lang('Search')); // Must reset placeholder in case locale changed or got finally loaded.
             }
             else {
                 el.attr('placeholder', fieldName);
@@ -6534,7 +6536,7 @@
                     '    <td colspan="4" class="actions">'+
                     '        <div>'+
                     '        <button type="button" class="w2ui-btn" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) { obj.searchReset(); }">'+ w2utils.lang('Reset') + '</button>'+
-                    '        <button type="button" class="w2ui-btn w2ui-btn-blue" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) { obj.search(); }">'+ w2utils.lang('Search') + '</button>'+
+                    '        <button type="button" class="w2ui-btn w2ui-btn-blue" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) { obj.search(); }">'+ w2utils.lang('Search (verb)', 'Search') + '</button>'+
                     '        </div>'+
                     '    </td>'+
                     '</tr></tbody></table>';
