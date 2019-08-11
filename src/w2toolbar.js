@@ -573,16 +573,17 @@
             if (el.length === 0) {
                 // does not exist - create it
                 if (it.type == 'spacer') {
-                    html = '<td width="100%" id="tb_'+ this.name +'_item_'+ it.id +'" align="right"></td>';
+                    html = '<td width="100%" id="' + this.getFullItemId(it.id) +'" align="right"></td>';
                 } else {
-                    html = '<td id="tb_'+ this.name + '_item_'+ it.id +'" style="'+ (it.hidden ? 'display: none' : '') +'" '+
+                    html = '<td id="' + this.getFullItemId(it.id) + '" style="'+ (it.hidden ? 'display: none' : '') +'" '+
                         '    class="'+ (it.disabled ? 'disabled' : '') +'" valign="middle">'+ html +
                         '</td>';
                 }
-                if (this.get(id, true) == this.items.length-1) {
+                var itemIdx = this.get(id, true);
+                if (itemIdx == this.items.length-1) {
                     $(this.box).find('#tb_'+ this.name +'_right').before(html);
                 } else {
-                    $(this.box).find('#tb_'+ this.name +'_item_'+ w2utils.escapeId(this.items[parseInt(this.get(id, true))+1].id)).before(html);
+                    $(this.box).find('#' + this.getFullItemId(this.items[parseInt(itemIdx) + 1].id)).before(html);
                 }
             } else {
                 if (['menu', 'menu-radio', 'menu-check', 'drop', 'color', 'text-color'].indexOf(it.type) != -1 && it.checked == false) {
