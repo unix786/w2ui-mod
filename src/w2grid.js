@@ -187,7 +187,9 @@
 
         /** internal properties */
         this.last = {
-            field     : '',
+            /** Field for "search_all" or default search field. */
+            field: '',
+            /** Property related to property "field". */
             label     : '',
             logic     : 'OR',
             search    : '',
