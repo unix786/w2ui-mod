@@ -6508,6 +6508,10 @@
                         '    <td class="operator">'+ operator +'</td>'+
                         '    <td class="value">';
 
+                var getStyle = function (defaultWidth) {
+                    // cannot set width in CSS because the "reset" selector has very high specificity.
+                    return 'style="width:' + (s.width || defaultWidth) + ';' + s.style + '"';
+                };
                 switch (s.type) {
                     case 'text':
                     case 'alphanumeric':
@@ -6516,10 +6520,10 @@
                     case 'list':
                     case 'combo':
                     case 'enum':
-                        var tmpStyle = 'width: 250px;';
-                        if (['hex', 'color'].indexOf(s.type) != -1) tmpStyle = 'width: 90px;';
-                        html += '<input rel="search" type="text" id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+
-                                '   class="w2ui-input" style="'+ tmpStyle + s.style +'" '+ s.inTag +'/>';
+                        var defaultWidth = '250px'
+                        if (['hex', 'color'].indexOf(s.type) != -1) defaultWidth = '90px';
+                        html += '<input rel="search" type="text" data-searchable-type="' + s.type + '" id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+
+                                '   class="w2ui-input non-numeric" '+ getStyle(defaultWidth) +' '+ s.inTag +'/>';
                         break;
 
                     case 'int':
@@ -6530,11 +6534,11 @@
                     case 'date':
                     case 'time':
                     case 'datetime':
-                        var tmpStyle = 'width: 90px;';
-                        if (s.type == 'datetime') tmpStyle = 'width: 140px;';
-                        html += '<input rel="search" type="text" class="w2ui-input" style="'+ tmpStyle + s.style +'" id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
+                        var defaultWidth = '90px';
+                        if (s.type == 'datetime') defaultWidth = '140px';
+                        html += '<input rel="search" type="text" data-searchable-type="' + s.type + '" class="w2ui-input numeric" '+ getStyle(defaultWidth) + ' id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
                                 '<span id="grid_'+ this.name +'_range_'+ i +'" style="display: none">&#160;-&#160;&#160;'+
-                                '<input rel="search" type="text" class="w2ui-input" style="'+ tmpStyle + s.style +'" id="grid_'+ this.name +'_field2_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
+                                '<input rel="search" type="text" data-searchable-type="' + s.type + '" class="w2ui-input numeric" '+ getStyle(defaultWidth) + ' id="grid_'+ this.name +'_field2_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
                                 '</span>';
                         break;
 
@@ -6554,11 +6558,13 @@
                     '    <td colspan="3"><button id="' + buttonId + '" class="add" onclick="w2ui[\'' + this.name + '\'].searchSelectColumns(this);">' + w2utils.lang('Add field') + '</button></td>' +
                     '</tr>';
             }
+            var btnReset = '        <button type="button" class="w2ui-btn" onclick="obj = w2ui[\'' + this.name + '\']; if (obj) { obj.searchReset(); }">' + w2utils.lang('Reset') + '</button>';
+            var btnSearch = '        <button type="button" class="w2ui-btn w2ui-btn-blue" onclick="obj = w2ui[\'' + this.name + '\']; if (obj) { obj.search(); }">' + w2utils.lang('Search (verb)', 'Search') + '</button>';
             html += '<tr>'+
                     '    <td colspan="4" class="actions">'+
                     '        <div>'+
-                    '        <button type="button" class="w2ui-btn" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) { obj.searchReset(); }">'+ w2utils.lang('Reset') + '</button>'+
-                    '        <button type="button" class="w2ui-btn w2ui-btn-blue" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) { obj.search(); }">'+ w2utils.lang('Search (verb)', 'Search') + '</button>'+
+                    (isLayout2 ? btnSearch : btnReset) +
+                    (isLayout2 ? btnReset : btnSearch) +
                     '        </div>'+
                     '    </td>'+
                     '</tr></tbody></table>';
@@ -6585,6 +6591,7 @@
             }
         },
 
+        /** Used in getSearchesHTML. */
         initOperator: function (el, search_ind) {
             var obj     = this;
             var search  = obj.searches[search_ind];
