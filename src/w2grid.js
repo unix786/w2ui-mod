@@ -2223,6 +2223,19 @@
             $().w2overlay({ name: this.name + '-searchOverlay' });
         },
 
+        /**
+         * Shows a dialogue for selecting which buttons to display in the "advanced search" menu.
+         * @param {any} button Element at which to display the overlay (must have an id set).
+         */
+        searchSelectColumns: function (button) {
+            var buttonId = button.id;
+            $('#' + buttonId).w2overlay({
+                html: 'not yet implemented',
+                name: this.name + '-searchColumnSelectOverlay',
+                class: 'w2ui-grid-searches column-select',
+            });
+        },
+
         /**Search input field. */
         getSearchAllId: function () {
             return 'grid_' + this.name + '_search_all';
@@ -6319,6 +6332,7 @@
             var obj  = this;
             var html = '<table cellspacing="0"><tbody>';
             var showBtn = false;
+            var isLayout2 = this.show.toolbarSearchLayout2;
             for (var i = 0; i < this.searches.length; i++) {
                 var s = this.searches[i];
                 s.type = String(s.type).toLowerCase();
@@ -6343,7 +6357,7 @@
                     '</select>';
 
                 html += '<tr>'+
-                        '    <td class="close-btn">'+ btn +'</td>' +
+                        (isLayout2 ? '' : '    <td class="close-btn">'+ btn +'</td>') +
                         '    <td class="caption">'+ (s.label || '') +'</td>' +
                         '    <td class="operator">'+ operator +'</td>'+
                         '    <td class="value">';
@@ -6387,6 +6401,12 @@
                 html += s.outTag +
                         '    </td>' +
                         '</tr>';
+            }
+            if (isLayout2) {
+                var buttonId = 'tb_' + this.name + '_toolbar_advanced_search_add_fields';
+                html += '<tr>' +
+                    '    <td colspan="3"><button id="' + buttonId + '" class="add" onclick="w2ui[\'' + this.name + '\'].searchSelectColumns(this);">' + w2utils.lang('Add field') + '</button></td>' +
+                    '</tr>';
             }
             html += '<tr>'+
                     '    <td colspan="4" class="actions">'+
