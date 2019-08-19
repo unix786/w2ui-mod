@@ -813,6 +813,7 @@
             return null;
         },
 
+        /** Toggles "hidden" flag in "this.searches". Takes a list of field names as argument. */
         toggleSearch: function () {
             var effected = 0;
             for (var a = 0; a < arguments.length; a++) {
@@ -2177,6 +2178,10 @@
             this.trigger($.extend(edata, { phase: 'after' }));
         },
 
+        getSearchOverlayName: function() {
+            return this.name + '-searchOverlay';
+        },
+
         searchOpen: function () {
             if (!this.box) return;
             if (this.searches.length === 0) return;
@@ -2192,7 +2197,7 @@
             // show search
             $('#tb_'+ this.name +'_toolbar_item_w2ui-search-advanced').w2overlay({
                 html    : this.getSearchesHTML(),
-                name    : this.name + '-searchOverlay',
+                name    : this.getSearchOverlayName(),
                 left    : -10,
                 'class' : 'w2ui-grid-searches',
                 onShow  : function () {
@@ -2210,6 +2215,7 @@
                 onHide: function () {
                     it.checked = false;
                     $(btn).removeClass('checked');
+                    obj.ensureClosedSearchSelectColumns();
                 }
             });
         },
@@ -2220,7 +2226,28 @@
             if (this.searches.length === 0) return;
             if (this.toolbar) this.toolbar.uncheck('w2ui-search-advanced');
             // hide search
-            $().w2overlay({ name: this.name + '-searchOverlay' });
+            this.ensureClosedSearchSelectColumns();
+            $().w2overlay({ name: this.getSearchOverlayName() });
+        },
+
+        toggleSearchExt: function (element) {
+            var field = element.dataset.field;
+            var input = element.querySelector('input');
+
+            var searchIdx = this.getSearch(field, true);
+            var s = this.searches[searchIdx];
+            var check = s.hidden;
+            if (input.checked != check) input.checked = check;
+            s.hidden = !check;
+
+            //getSearchesHTML adds "display: none" for hidden columns.
+            var row = jQuery('#w2ui-overlay-' + this.getSearchOverlayName() + ' .w2ui-grid-searches table tr').eq(searchIdx);
+            if (check) row.show();
+            else row.hide();
+        },
+
+        getSearchSelectColumnOverlayName: function () {
+            return this.name + '-searchColumnSelectOverlay';
         },
 
         /**
@@ -2228,11 +2255,33 @@
          * @param {any} button Element at which to display the overlay (must have an id set).
          */
         searchSelectColumns: function (button) {
+            var html = '<table>';
+            const columns = 3;
+            for (var i = 0, j = 0; i < this.searches.length; i++ , j = (j + 1) % columns) {
+                var s = this.searches[i];
+                if (j === 0) {
+                    if (i > 0) html += '</tr>';
+                    html += '<tr>';
+                }
+                html += '<td>' +
+                    '<div class="ui checkbox" data-field="' + s.field + '" onclick="w2ui[\'' + this.name +'\'].toggleSearchExt(this)">' +
+                    '  <input type="checkbox"' + (s.hidden ? '' : ' checked') + '>' +
+                    '  <label>' + (s.label || '') + '</label>'
+                    '</td>';
+            }
+            if (i > 0) html += '</tr>';
+            html += '</table>';
             var buttonId = button.id;
             $('#' + buttonId).w2overlay({
-                html: 'not yet implemented',
-                name: this.name + '-searchColumnSelectOverlay',
-                class: 'w2ui-grid-searches column-select',
+                html: html,
+                name: this.getSearchSelectColumnOverlayName(),
+                class: 'w2ui-grid-searches-column-select',
+            });
+        },
+
+        ensureClosedSearchSelectColumns: function () {
+            jQuery().w2overlay({
+                name: this.getSearchSelectColumnOverlayName()
             });
         },
 
@@ -6336,7 +6385,7 @@
             for (var i = 0; i < this.searches.length; i++) {
                 var s = this.searches[i];
                 s.type = String(s.type).toLowerCase();
-                if (s.hidden) continue;
+                if (s.hidden && !isLayout2) continue;
                 var btn = '';
                 if (showBtn == false) {
                     btn = '<button type="button" class="w2ui-btn close-btn" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) obj.searchClose()">X</button>';
@@ -6356,7 +6405,8 @@
                         getOperators(s.type, s.operators) +
                     '</select>';
 
-                html += '<tr>'+
+                // "display: none" is needed for toggleSearchExt.
+                html += '<tr' + (isLayout2 && s.hidden ? ' style="display:none"' : '') + '>'+
                         (isLayout2 ? '' : '    <td class="close-btn">'+ btn +'</td>') +
                         '    <td class="caption">'+ (s.label || '') +'</td>' +
                         '    <td class="operator">'+ operator +'</td>'+
