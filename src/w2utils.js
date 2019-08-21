@@ -2456,6 +2456,7 @@ w2utils.event = {
             onShow      : null,              // event on show
             onHide      : null,              // event on hide
             openAbove   : false,             // show above control
+            keepOnParentPosChange : false,// will monitor parent position
             tmp         : {}
         };
         if (arguments.length === 1) {
@@ -2503,7 +2504,7 @@ w2utils.event = {
             '</div>'
         );
         // init
-        var div1 = $('#w2ui-overlay'+ name);
+        var div1 = getRootDiv();
         var div2 = div1.find(' > div');
         div2.html(options.html);
         // pick bg color of first div
@@ -2541,13 +2542,14 @@ w2utils.event = {
 
         // monitor position
         function monitor() {
-            var tmp = $('#w2ui-overlay'+ name);
+            var tmp = getRootDiv();
             if (tmp.data('element') !== obj[0]) return; // it if it different overlay
             if (tmp.length === 0) return;
             var offset = $(obj).offset() || {};
             var pos = offset.left + 'x' + offset.top;
             if (tmp.data('position') !== pos) {
-                hide();
+                if (tmp.data('options').keepOnParentPosChange) removeTip(tmp);
+                else hide();
             } else {
                 setTimeout(monitor, 250);
             }
@@ -2571,8 +2573,22 @@ w2utils.event = {
             clearInterval(div1.data('timer'));
         }
 
+        /** Removes tip.
+         * @param {any} div1 jQuery object of rootDiv.
+         */
+        function removeTip(div1) {
+            div1.find('>style').html(
+                '#w2ui-overlay' + name + ':before { display: none; }' +
+                '#w2ui-overlay' + name + ':after { display: none; }'
+            );
+        }
+
+        function getRootDiv() {
+            return $('#w2ui-overlay' + name);
+        }
+
         function resize() {
-            var div1 = $('#w2ui-overlay'+ name);
+            var div1 = getRootDiv();
             var div2 = div1.find(' > div');
             var menu = $('#w2ui-overlay'+ name +' div.menu');
             menu.css('overflow-y', 'hidden');
@@ -2710,12 +2726,7 @@ w2utils.event = {
                     setTimeout(function () { resize(); }, 1);
                 }
                 // don't show tip
-                if (options.contextMenu || options.noTip) { // context menu
-                    div1.find('>style').html(
-                        '#w2ui-overlay'+ name +':before { display: none; }'+
-                        '#w2ui-overlay'+ name +':after { display: none; }'
-                    );
-                }
+                if (options.contextMenu || options.noTip) removeTip(div1);
                 // check scroll bar (needed to avoid horizontal scrollbar)
                 if (overflowY && options.align !== 'both') div2.width(w + w2utils.scrollBarSize() + 2);
             }

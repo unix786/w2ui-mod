@@ -2276,6 +2276,7 @@
                 html: html,
                 name: this.getSearchSelectColumnOverlayName(),
                 class: 'w2ui-grid-searches-column-select',
+                keepOnParentPosChange: true
             });
         },
 
