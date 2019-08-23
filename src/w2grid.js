@@ -196,6 +196,8 @@
             /** Reference to a jQuery object. */
             searchAll: null,
             searchIds : [],
+            /** Indicates that user changed the "hidden" flags in searches. Values: initial, changePending, changed */
+            searchItemVisibility: 'initial',
             selection : {
                 indexes : [],
                 columns : {}
@@ -329,7 +331,7 @@
             toolbarReload   : true,
             toolbarColumns  : true,
             toolbarSearch   : true,
-            toolbarSearchLayout2: false, // Альтернативный дизайн поиска: отдельное поле для выбора колонки, по которой искать.
+            toolbarSearchLayout2: false, // Альтернативный дизайн поиска: отдельное поле для выбора колонки, по которой искать. This makes hidden searches become cleared.
             toolbarInput    : true,
             toolbarAdd      : false,
             toolbarEdit     : false,
@@ -822,6 +824,7 @@
             return removed;
         },
 
+        /** See also: getSearchData. */
         getSearch: function (field, returnIndex) {
             // no arguments - return fields of all searches
             if (arguments.length === 0) {
@@ -881,9 +884,10 @@
             return hidden;
         },
 
-        getSearchData: function (field) {
+        /** See also: getSearch */
+        getSearchData: function (field, returnIndex) {
             for (var i = 0; i < this.searchData.length; i++) {
-                if (this.searchData[i].field == field) return this.searchData[i];
+                if (this.searchData[i].field == field) return returnIndex ? i : this.searchData[i];
             }
             return null;
         },
@@ -1991,6 +1995,7 @@
             var last_logic  = this.last.logic;
             var last_field  = this.last.field;
             var last_search = this.last.search;
+            if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
             var hasHiddenSearches = false;
             // add hidden searches
             for (var i = 0; i < this.searches.length; i++) {
@@ -2307,11 +2312,23 @@
             var check = s.hidden;
             if (input.checked != check) input.checked = check;
             s.hidden = !check;
+            this.last.searchItemVisibility = 'changePending';
 
             //getSearchesHTML adds "display: none" for hidden columns.
             var row = jQuery('#w2ui-overlay-' + this.getSearchOverlayName() + ' .w2ui-grid-searches table tr').eq(searchIdx);
-            if (check) row.show();
-            else row.hide();
+            if (check) {
+                row.show();
+            }
+            else {
+                row.hide();
+
+                // Clearing the hidden filter.
+                row.find('*[rel=search]').w2field('clear');
+
+                // Also queing searchData entry for clearing in case the user does not click "Search" after this.
+                var searchData = this.getSearchData(s.field);
+                if (searchData) searchData.hiddenByUser = true;
+            }
         },
 
         getSearchSelectColumnOverlayName: function () {
@@ -2415,6 +2432,7 @@
             // -- clear all search field
             this.searchClose();
             this.getSearchAll().val('').removeData('selected');
+            if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
             // apply search
             if (!noRefresh) this.reload();
             // event after
@@ -2576,6 +2594,7 @@
             if (url) {
                 // need to remember selection (not just last.selection object)
                 this.load(url, function () {
+                    grid.last.searchItemVisibility = 'initial';
                     grid.selectionRestore();
                     if (typeof callBack == 'function') callBack();
                 });
@@ -2617,6 +2636,11 @@
             }
             if (this.sortData.length === 0) {
                 delete params['sort'];
+            }
+            if (this.show.toolbarSearchLayout2) {
+                if (this.last.searchItemVisibility === 'changed') {
+                    params.visibleSearches = this.searches.filter(function (s) { return !s.hidden; }).map(function (s) { return s.field; });
+                }
             }
             // append other params
             $.extend(params, this.postData);
@@ -6742,7 +6766,7 @@
                         $('#grid_'+ this.name +'_field_'+s).html(options);
                         break;
                 }
-                if (sdata != null) {
+                if (!(sdata == null || sdata.hiddenByUser)) {
                     if (sdata.type == 'int' && ['in', 'not in'].indexOf(sdata.operator) != -1) {
                         $('#grid_'+ this.name +'_field_'+ s).w2field('clear').val(sdata.value);
                     }
