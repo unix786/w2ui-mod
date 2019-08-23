@@ -2268,14 +2268,15 @@
                 return;
             }
             // show search
+            var overlayName = this.getSearchOverlayName();
             $('#tb_'+ this.name +'_toolbar_item_w2ui-search-advanced').w2overlay({
                 html    : this.getSearchesHTML(),
-                name    : this.getSearchOverlayName(),
+                name    : overlayName,
                 left    : -10,
                 'class' : 'w2ui-grid-searches',
                 onShow  : function () {
                     obj.initSearches();
-                    $('#w2ui-overlay-'+ obj.name +'-searchOverlay .w2ui-grid-searches').data('grid-name', obj.name);
+                    $('#w2ui-overlay-'+ overlayName + ' .w2ui-grid-searches').data('grid-name', obj.name);
                     var sfields = $('#w2ui-overlay-'+ this.name +'-searchOverlay .w2ui-grid-searches *[rel=search]');
                     if (sfields.length > 0) sfields[0].focus();
                     if (!it.checked) {
@@ -6712,10 +6713,11 @@
                     }
                 }
                 // init types
+                var inputField = $('#grid_' + this.name + '_field_' + s);
                 switch (search.type) {
                     case 'text':
                     case 'alphanumeric':
-                        $('#grid_'+ this.name +'_field_' + s).w2field(search.type, search.options);
+                        inputField.w2field(search.type, search.options);
                         break;
 
                     case 'int':
@@ -6728,10 +6730,10 @@
                     case 'date':
                     case 'time':
                     case 'datetime':
-                        $('#grid_'+ this.name +'_field_'+s).w2field(search.type, search.options);
+                        inputField.w2field(search.type, search.options);
                         $('#grid_'+ this.name +'_field2_'+s).w2field(search.type, search.options);
                         setTimeout(function () { // convert to date if it is number
-                            $('#grid_'+ obj.name +'_field_'+s).keydown();
+                            inputField.keydown();
                             $('#grid_'+ obj.name +'_field2_'+s).keydown();
                         }, 1);
                         break;
@@ -6743,8 +6745,8 @@
                         if (search.type == 'list') options.selected = {};
                         if (search.type == 'enum') options.selected = [];
                         if (sdata) options.selected = sdata.value;
-                        $('#grid_'+ this.name +'_field_'+s).w2field(search.type, $.extend({ openOnFocus: true }, options));
-                        if (sdata && sdata.text != null) $('#grid_'+ this.name +'_field_'+s).data('selected', {id: sdata.value, text: sdata.text});
+                        inputField.w2field(search.type, $.extend({ openOnFocus: true }, options));
+                        if (sdata && sdata.text != null) inputField.data('selected', {id: sdata.value, text: sdata.text});
                         break;
 
                     case 'select':
@@ -6763,21 +6765,21 @@
                                 options += '<option value="'+ si +'">'+ si +'</option>';
                             }
                         }
-                        $('#grid_'+ this.name +'_field_'+s).html(options);
+                        inputField.html(options);
                         break;
                 }
                 if (!(sdata == null || sdata.hiddenByUser)) {
                     if (sdata.type == 'int' && ['in', 'not in'].indexOf(sdata.operator) != -1) {
-                        $('#grid_'+ this.name +'_field_'+ s).w2field('clear').val(sdata.value);
+                        inputField.w2field('clear').val(sdata.value);
                     }
                     $('#grid_'+ this.name +'_operator_'+ s).val(sdata.operator).trigger('change');
                     if (!$.isArray(sdata.value)) {
-                        if (sdata.value != null) $('#grid_'+ this.name +'_field_'+ s).val(sdata.value).trigger('change');
+                        if (sdata.value != null) inputField.val(sdata.value).trigger('change');
                     } else {
                         if (['in', 'not in'].indexOf(sdata.operator) != -1) {
-                            $('#grid_'+ this.name +'_field_'+ s).val(sdata.value).trigger('change');
+                            inputField.val(sdata.value).trigger('change');
                         } else {
-                            $('#grid_'+ this.name +'_field_'+ s).val(sdata.value[0]).trigger('change');
+                            inputField.val(sdata.value[0]).trigger('change');
                             $('#grid_'+ this.name +'_field2_'+ s).val(sdata.value[1]).trigger('change');
                         }
                     }
