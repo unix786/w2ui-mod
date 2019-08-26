@@ -294,6 +294,8 @@
         limit        : 100,
         offset       : 0,        // how many records to skip (for infinite scroll) when pulling from server
         searchData   : [],
+        /** Remaps searchData fields (changes one name to another) for data requests. */
+        searchMap: null,
         sortData     : [],
         routeData    : {},       // data for dynamic routes
         postData     : {},
@@ -435,15 +437,15 @@
 
         operators: { // for search fields
             "text"    : ['is', 'begins', 'contains', 'ends'],
-            "number"  : ['is', 'between', { oper: 'less', text: 'less than'}, { oper: 'more', text: 'more than' }],
-            "date"    : ['is', 'between', { oper: 'less', text: 'before'}, { oper: 'more', text: 'after' }],
+            "number"  : ['is', 'between', { oper: 'less', text: 'less than'}, { oper: 'more', text: 'from' }],
+            "date"    : ['is', 'between', { oper: 'less', text: 'before'}, { oper: 'more', text: 'from' }],
             "list"    : ['is'],
             "hex"     : ['is', 'between'],
             "color"   : ['is', 'begins', 'contains', 'ends'],
             "enum"    : ['in', 'not in']
             // -- all possible
             // "text"    : ['is', 'begins', 'contains', 'ends'],
-            // "number"  : ['is', 'between', 'less:less than', 'more:more than', 'null:is null', 'not null:is not null'],
+            // "number"  : ['is', 'between', 'less:less than', 'more:from', 'null:is null', 'not null:is not null'],
             // "list"    : ['is', 'null:is null', 'not null:is not null'],
             // "enum"    : ['in', 'not in', 'null:is null', 'not null:is not null']
         },
@@ -769,6 +771,11 @@
             return this.updateColumn(Array.from(arguments), { hidden: true });
         },
 
+        /**
+         * Inserts items into "searches".
+         * @param {any} before Index or name of an existing search. Treaded as "search" argument if "search" is not defined.
+         * @param {any} search New search or an array of searches to be added.
+         */
         addSearch: function (before, search) {
             var added = 0;
             if (arguments.length == 1) {
