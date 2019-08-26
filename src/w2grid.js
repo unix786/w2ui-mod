@@ -2392,7 +2392,7 @@
             return this.last.searchAll;
         },
 
-        searchReset: function (noRefresh) {
+        searchReset: function (callReload, initSearchData) {
             var searchData = [];
             var hasHiddenSearches = false;
             // add hidden searches
@@ -2406,13 +2406,24 @@
                 });
                 hasHiddenSearches = true;
             }
+            if (Array.isArray(initSearchData)) {
+                for (var i = 0; i < initSearchData.length; i++) {
+                    var d = initSearchData[i];
+                    searchData.push({
+                        field: d.field,
+                        operator: d.operator,
+                        type: d.type,
+                        value: d.value
+                    });
+                }
+            }
             // event before
             var edata = this.trigger({ phase: 'before', type: 'search', reset: true, target: this.name, searchData: searchData });
             if (edata.isCancelled === true) return;
             // default action
             this.searchData  = edata.searchData;
             this.last.search = '';
-            this.last.logic  = (hasHiddenSearches ? 'AND' : 'OR');
+            this.last.logic  = (hasHiddenSearches || initSearchData ? 'AND' : 'OR');
             // --- do not reset to All Fields (I think)
             if (this.searches.length > 0) {
                 if (!this.multiSearch || !this.show.searchAll) {
@@ -2443,7 +2454,7 @@
             this.getSearchAll().val('').removeData('selected');
             if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
             // apply search
-            if (!noRefresh) this.reload();
+            if (callReload) this.reload();
             // event after
             this.trigger($.extend(edata, { phase: 'after' }));
         },
@@ -5063,7 +5074,7 @@
                 if (this.searches[i].hidden) { hasHiddenSearches = true; break; }
             }
             if (hasHiddenSearches) {
-                this.searchReset(false); // will call reload
+                this.searchReset(true, this.searchData); // will call reload
                 if (!url) setTimeout(function () { obj.searchReset(); }, 1);
             } else {
                 this.reload();
@@ -5874,6 +5885,21 @@
             this.scroll();
         },
 
+        /** Used in initToolbar. */
+        searchAllChanged: function (input) {
+            var grid = this;
+            var val = input.value;
+            var sel = jQuery(input).data('selected');
+            var fld = jQuery(input).data('w2field');
+            if (fld) val = fld.clean(val);
+            if (fld && fld.type == 'list' && sel && typeof sel.id == 'undefined') {
+                this.searchReset();
+            }
+            else {
+                this.search(grid.last.field, val);
+            }
+        },
+
         initToolbar: function () {
             var obj = this;
             // -- if toolbar is true
@@ -5908,22 +5934,12 @@
                         '            placeholder="'+ w2utils.lang('Search') +'" value="'+ this.last.search +'"'+
                         '            onfocus="var grid = w2ui[\''+ this.name +'\']; clearTimeout(grid.last.kbd_timer); grid.searchShowFields(true); grid.searchClose()"'+
                         '            onkeydown="if (event.keyCode == 13 &amp;&amp; w2utils.isIE) this.onchange();"'+
-                        '            onchange="'+
-                        '                var grid = w2ui[\''+ this.name +'\']; '+
-                        '                var val = this.value; '+
-                        '                var sel = jQuery(this).data(\'selected\');'+
-                        '                var fld = jQuery(this).data(\'w2field\'); '+
-                        '                if (fld) val = fld.clean(val);'+
-                        '                if (fld &amp;&amp; fld.type == \'list\' &amp;&amp; sel &amp;&amp; typeof sel.id == \'undefined\') {'+
-                        '                   grid.searchReset();'+
-                        '                } else {'+
-                        '                   grid.search(grid.last.field, val);'+
-                        '                }'+
-                        '            "/>'+
+                        '            onchange="w2ui[\''+ this.name +'\'].searchAllChanged(this);"'+
+                        '            />'+
                         '    </td>'+
                         '    <td>'+
                         '        <div class="w2ui-search-clear" id="grid_'+ this.name +'_searchClear"  '+
-                        '             onclick="var obj = w2ui[\''+ this.name +'\']; obj.searchReset();" style="display: none"'+
+                        '             onclick="w2ui[\''+ this.name +'\'].searchReset();" style="display: none"'+
                         '        >&#160;&#160;</div>'+
                         '    </td>'+
                         '</tr></tbody></table>'+
