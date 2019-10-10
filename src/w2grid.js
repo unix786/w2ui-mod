@@ -2417,7 +2417,7 @@
             });
         },
 
-        searchReset: function (callReload, initSearchData) {
+        searchReset: function (noRefresh, initSearchData) {
             var searchData = [];
             var hasHiddenSearches = false;
             // add hidden searches
@@ -2479,7 +2479,7 @@
             this.getSearchAll().val('').removeData('selected');
             if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
             // apply search
-            if (callReload) this.reload();
+            if (!noRefresh) this.reload();
             $('#' + this.getSearchClearId()).hide();
             // event after
             this.trigger($.extend(edata, { phase: 'after' }));
@@ -5094,7 +5094,7 @@
                 if (this.searches[i].hidden) { hasHiddenSearches = true; break; }
             }
             if (hasHiddenSearches) {
-                this.searchReset(true, this.searchData); // will call reload
+                this.searchReset(undefined, this.searchData); // will call reload
                 if (!url) setTimeout(function () { obj.searchReset(); }, 1);
             } else {
                 this.reload();
