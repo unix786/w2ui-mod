@@ -5908,16 +5908,26 @@
         /** Used in initToolbar. */
         searchAllChanged: function (input) {
             var grid = this;
-            var val = input.value;
-            var sel = jQuery(input).data('selected');
-            var fld = jQuery(input).data('w2field');
-            if (fld) val = fld.clean(val);
-            if (fld && fld.type == 'list' && sel && typeof sel.id == 'undefined') {
-                this.searchReset();
-            }
-            else {
-                this.search(grid.last.field, val);
-            }
+            // Delaying to give a chance for searchClear to execute first.
+            this.last.searchAllChangedTimeout = setTimeout(
+                function () {
+                    var val = input.value;
+                    var sel = jQuery(input).data('selected');
+                    var fld = jQuery(input).data('w2field');
+                    if (fld) val = fld.clean(val);
+                    if (fld && fld.type == 'list' && sel && typeof sel.id == 'undefined') {
+                        grid.searchReset();
+                    }
+                    else {
+                        grid.search(grid.last.field, val);
+                    }
+                },
+                100); // If this is not enough, the user may have to click "clear" once more after refresh.
+        },
+
+        searchClearClicked: function () {
+            clearTimeout(this.last.searchAllChangedTimeout);
+            this.searchReset();
         },
 
         initToolbar: function () {
@@ -5960,7 +5970,7 @@
                         '    </td>'+
                         '    <td>'+
                         '        <div class="w2ui-search-clear" id="' + searchClearId + '"  '+
-                        '             onclick="w2ui[\''+ this.name +'\'].searchReset();" style="display: none"'+
+                        '             onclick="w2ui[\''+ this.name +'\'].searchClearClicked();" style="display: none"'+
                         '        >&#160;&#160;</div>'+
                         '    </td>'+
                         '</tr></tbody></table>'+
