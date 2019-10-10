@@ -2385,11 +2385,36 @@
             return 'grid_' + this.name + '_search_all';
         },
 
+        /**"Search all" clear button. */
+        getSearchClearId: function () {
+            return 'grid_' + this.name + '_searchClear';
+        },
+
         /**Gets the "search_all" input field in the toolbar. Returns a jQuery object. */
         getSearchAll: function () {
             if (this.last.searchAll) return this.last.searchAll;
             this.last.searchAll = $('#' + this.getSearchAllId());
             return this.last.searchAll;
+        },
+
+        /**Deremines whether "search all" field has something entered. */
+        isSearchAllNotEmpty: function () {
+            return this.getSearchAll().val();
+        },
+
+        /**This has to determine whether calling searchReset() would change anything. */
+        hasSearches: function () {
+            var grid = this;
+            if (grid.last.multi || grid.last.search || grid.isSearchAllNotEmpty())
+                return true;
+
+            // Check if searchData has non-hidden searches.
+            return grid.searchData.some(function (item) {
+                var tmp = grid.getSearch(item.field);
+                if (tmp && !tmp.hidden) {
+                    return true;
+                }
+            });
         },
 
         searchReset: function (callReload, initSearchData) {
@@ -2455,6 +2480,7 @@
             if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
             // apply search
             if (callReload) this.reload();
+            $('#' + this.getSearchClearId()).hide();
             // event after
             this.trigger($.extend(edata, { phase: 'after' }));
         },
@@ -4825,15 +4851,9 @@
                 $('#grid_'+ this.name +'_footer').hide();
             }
             // show/hide clear search link
-            var $clear = $('#grid_'+ this.name +'_searchClear');
-            $clear.hide();
-            this.searchData.some(function (item) {
-                var tmp = obj.getSearch(item.field);
-                if (obj.last.multi || (tmp && !tmp.hidden && ['list', 'enum'].indexOf(tmp.type) == -1)) {
-                    $clear.show();
-                    return true;
-                }
-            });
+            var $clear = $('#' + this.getSearchClearId());
+            if (this.isSearchAllNotEmpty()) $clear.show();
+            else $clear.hide();
             // all selected?
             var sel = this.last.selection,
                 areAllSelected = (this.records.length > 0 && sel.indexes.length == this.records.length),
@@ -5924,6 +5944,7 @@
                 var searchLabel = null;
                 if (this.show.toolbarInput) {
                     searchLabel = w2utils.lang(this.last.label);
+                    var searchClearId = this.getSearchClearId();
                     var html =
                         '<div class="w2ui-toolbar-search">'+
                         '<table cellpadding="0" cellspacing="0"><tbody><tr>'+
@@ -5933,12 +5954,12 @@
                         '            autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"'+
                         '            placeholder="'+ w2utils.lang('Search') +'" value="'+ this.last.search +'"'+
                         '            onfocus="var grid = w2ui[\''+ this.name +'\']; clearTimeout(grid.last.kbd_timer); grid.searchShowFields(true); grid.searchClose()"'+
-                        '            onkeydown="if (event.keyCode == 13 &amp;&amp; w2utils.isIE) this.onchange();"'+
+                        '            onkeydown="if (event.keyCode == 13 &amp;&amp; w2utils.isIE) this.onchange(); else $(\'#' + searchClearId + '\').show();"'+
                         '            onchange="w2ui[\''+ this.name +'\'].searchAllChanged(this);"'+
                         '            />'+
                         '    </td>'+
                         '    <td>'+
-                        '        <div class="w2ui-search-clear" id="grid_'+ this.name +'_searchClear"  '+
+                        '        <div class="w2ui-search-clear" id="' + searchClearId + '"  '+
                         '             onclick="w2ui[\''+ this.name +'\'].searchReset();" style="display: none"'+
                         '        >&#160;&#160;</div>'+
                         '    </td>'+
