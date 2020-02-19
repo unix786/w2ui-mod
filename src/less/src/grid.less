@@ -805,75 +805,108 @@
     padding: 0px;
     border-top: 0px;
     background-color: @grid-searches-background-color;
-    table {
+    table, .fields {
         padding: 4px;
         padding-top: 12px;
+    }
+
+    .fields {
+        display: grid;
+        grid-template-columns: fit-content(30%) minmax(auto, max-content) auto;
+        grid-gap: 8px 10px;
+        align-items: center;
+
+        > div {
+            /*Строки дополнительно окружены, чтобы их было легче прятать.*/
+            display: contents;
+        }
+    }
+
+    table {
         border-collapse: border-collapse;
+
         td {
             padding: 4px;
-            &.close-btn {
-                width: 20px;
-                padding-right: 20px;
-                button {
-                    min-width: 24px;
-                    height: 24px;
-                    padding-top: 5px !important;
-                }
-            }
-            &.caption {
-                text-align: right;
-                padding-right: 5px;
-                border-right: @grid-searches-inner-border;
-            }
-            &.operator {
-                text-align: left;
-                padding: 0px 10px;
-                padding-right: 5px;
-                border-right: @grid-searches-inner-border;
-                height: 31px;
-            }
-            &.operator select {
-                width: 100%;
-                color: black;
-            }
-            /* for IE */
-            &.operator select::-ms-expand {
-                display: none;
-            }
-            &.value {
-                padding-right: 5px;
-                padding-left: 5px;
-                input[type=text] {
-                    border-radius: 3px;
-                    padding: 3px;
-                    margin-right: 3px;
-                    height: 23px;
-                }
-                select {
-                    padding: 3px;
-                    margin-right: 3px;
-                    height: 23px;
-                }
-            }
-            button.add {
-                background: none;
-                color: blue;
-                &:hover{
-                    cursor: pointer;
-                }
-            }
+
             &.actions {
                 border-right: 0px;
+
                 > div {
                     margin: -7px;
                     margin-top: 15px;
-                    padding: 13px 0px;
-                    text-align: center;
-                    background-color: @grid-searches-buttons-background-color;
-                    border-top: @grid-searches-inner-border;
                 }
             }
         }
+    }
+
+    .close-btn {
+        width: 20px;
+        padding-right: 20px;
+        button {
+            min-width: 24px;
+            height: 24px;
+            padding-top: 5px !important;
+        }
+    }
+    .caption {
+        text-align: right;
+        padding-right: 5px;
+        border-right: @grid-searches-inner-border;
+    }
+    .operator {
+        text-align: left;
+        padding: 0px 10px;
+        padding-right: 5px;
+        border-right: @grid-searches-inner-border;
+    }
+    .operator select {
+        width: 100%;
+        color: black;
+    }
+    .operator select::-ms-expand {
+        /* for IE */
+        display: none;
+    }
+    .value {
+        padding-right: 5px;
+        padding-left: 5px;
+
+        select {
+            padding: 3px;
+            margin-right: 3px;
+            height: 23px;
+        }
+    }
+
+    input[type=text] {
+        border-radius: 3px;
+        padding: 3px;
+        margin-right: 3px;
+        height: 23px;
+    }
+    button.add {
+        background: none;
+        color: blue;
+        grid-column-start: 1;
+        grid-column-end: -1;
+        max-width: max-content;
+        min-width: 50px;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+    table td.actions > div, > .actions {
+        margin-top: 15px;
+        padding: 13px 0px;
+        text-align: center;
+        background-color: @grid-searches-buttons-background-color;
+        border-top: @grid-searches-inner-border;
+    }
+
+    > .actions {
+        border-bottom-left-radius: inherit;
+        border-bottom-right-radius: inherit;
     }
 }
 

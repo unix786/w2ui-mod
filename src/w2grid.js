@@ -335,6 +335,7 @@
             toolbarColumns  : true,
             toolbarSearch   : true,
             toolbarSearchLayout2: false, // Альтернативный дизайн поиска: отдельное поле для выбора колонки, по которой искать. This makes hidden searches become cleared.
+            toolbarSearchGridLayout: false, // Use grid layout for "w2ui-search-advanced" overlay.
             toolbarInput    : true,
             toolbarAdd      : false,
             toolbarEdit     : false,
@@ -2285,8 +2286,8 @@
                 onShow  : function () {
                     obj.initSearches();
                     $('#w2ui-overlay-'+ overlayName + ' .w2ui-grid-searches').data('grid-name', obj.name);
-                    var sfields = $('#w2ui-overlay-'+ this.name +'-searchOverlay .w2ui-grid-searches *[rel=search]');
-                    if (sfields.length > 0) sfields[0].focus();
+                    //var sfields = $('#w2ui-overlay-'+ overlayName +' .w2ui-grid-searches *[rel=search]');
+                    //if (sfields.length > 0) sfields[0].focus();
                     if (!it.checked) {
                         it.checked = true;
                         $(btn).addClass('checked');
@@ -2312,6 +2313,10 @@
             $().w2overlay({ name: this.getSearchOverlayName() });
         },
 
+        /**
+         * Toggles display of a field in "w2ui-grid-searches".
+         * @param {any} element from searchSelectColumns
+         */
         toggleSearchExt: function (element) {
             var field = element.dataset.field;
             var input = element.querySelector('input');
@@ -2324,7 +2329,7 @@
             this.last.searchItemVisibility = 'changePending';
 
             //getSearchesHTML adds "display: none" for hidden columns.
-            var row = jQuery('#w2ui-overlay-' + this.getSearchOverlayName() + ' .w2ui-grid-searches table tr').eq(searchIdx);
+            var row = jQuery('#w2ui-overlay-' + this.getSearchOverlayName() + ' .w2ui-grid-searches ' + this.show.toolbarSearchGridLayout ? '.fields > *' : 'table tr').eq(searchIdx);
             if (check) {
                 row.show();
             }
@@ -2334,7 +2339,7 @@
                 // Clearing the hidden filter.
                 row.find('*[rel=search]').w2field('clear');
 
-                // Also queing searchData entry for clearing in case the user does not click "Search" after this.
+                // Also queuing searchData entry for clearing in case the user does not click "Search" after this.
                 var searchData = this.getSearchData(s.field);
                 if (searchData) searchData.hiddenByUser = true;
             }
@@ -6606,7 +6611,8 @@
 
         getSearchesHTML: function () {
             var obj  = this;
-            var html = '<table cellspacing="0"><tbody>';
+            var useGrid = this.show.toolbarSearchGridLayout;
+            var html = useGrid ? '<div class="fields">' : '<table cellspacing="0" class="fields"><tbody>';
             var showBtn = false;
             var isLayout2 = this.show.toolbarSearchLayout2;
             for (var i = 0; i < this.searches.length; i++) {
@@ -6615,6 +6621,7 @@
                 if (s.hidden && !isLayout2) continue;
                 var btn = '';
                 if (showBtn == false) {
+                    // The button can only appear in the first row, but the column has to be repeated for every row.
                     btn = '<button type="button" class="w2ui-btn close-btn" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) obj.searchClose()">X</button>';
                     showBtn = true;
                 }
@@ -6633,16 +6640,20 @@
                     '</select>';
 
                 // "display: none" is needed for toggleSearchExt.
-                html += '<tr' + (isLayout2 && s.hidden ? ' style="display:none"' : '') + '>'+
-                        (isLayout2 ? '' : '    <td class="close-btn">'+ btn +'</td>') +
-                        '    <td class="caption">'+ (s.label || '') +'</td>' +
-                        '    <td class="operator">'+ operator +'</td>'+
-                        '    <td class="value">';
+                var htmlRow = useGrid ? 'div' : 'tr';
+                var htmlCell = useGrid ? 'div' : 'td';
+                html += '<' + htmlRow + (isLayout2 && s.hidden ? ' style="display:none"' : '') + '>'+
+                        (isLayout2 || useGrid ? '' : '    <td class="close-btn">'+ btn +'</td>') +
+                        '    <' + htmlCell + ' class="caption">'+ (s.label || '') +'</' + htmlCell + '>' +
+                        '    <' + htmlCell + ' class="operator">'+ operator +'</' + htmlCell + '>';
 
                 var getStyle = function (defaultWidth) {
                     // cannot set width in CSS because the "reset" selector has very high specificity.
+                    // Alternatively could just repeat that selector in CSS for this case.
                     return 'style="width:' + (s.width || defaultWidth) + ';' + s.style + '"';
                 };
+                var htmlValue = '';
+                var inlineValue = false;
                 switch (s.type) {
                     case 'text':
                     case 'alphanumeric':
@@ -6651,10 +6662,21 @@
                     case 'list':
                     case 'combo':
                     case 'enum':
-                        var defaultWidth = '250px'
-                        if (['hex', 'color'].indexOf(s.type) != -1) defaultWidth = '90px';
-                        html += '<input rel="search" type="text" data-searchable-type="' + s.type + '" id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+
-                                '   class="w2ui-input non-numeric" '+ getStyle(defaultWidth) +' '+ s.inTag +'/>';
+                        var defaultWidth;
+                        if (['hex', 'color'].indexOf(s.type) == -1) {
+                            if (useGrid) {
+                                defaultWidth = '100%';
+                                inlineValue = true;
+                            }
+                            else {
+                                defaultWidth = '250px';
+                            }
+                        }
+                        else {
+                            defaultWidth = '90px';
+                        }
+                        htmlValue = '<input rel="search" type="text" data-searchable-type="' + s.type + '" id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+
+                                '   class="w2ui-input non-numeric' + (inlineValue ? ' value' : '') + '" '+ getStyle(defaultWidth) +' '+ s.inTag +'/>';
                         break;
 
                     case 'int':
@@ -6667,38 +6689,56 @@
                     case 'datetime':
                         var defaultWidth = '90px';
                         if (s.type == 'datetime') defaultWidth = '140px';
-                        html += '<input rel="search" type="text" data-searchable-type="' + s.type + '" class="w2ui-input numeric" '+ getStyle(defaultWidth) + ' id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
-                                '<span id="grid_'+ this.name +'_range_'+ i +'" style="display: none">&#160;-&#160;&#160;'+
+                        htmlValue = '<input rel="search" type="text" data-searchable-type="' + s.type + '" class="w2ui-input numeric" '+ getStyle(defaultWidth) + ' id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
+                                '<span id="grid_'+ this.name +'_range_'+ i +'" style="display: none">&#160;-&#160;' + (useGrid ? '' : '&#160;') +
                                 '<input rel="search" type="text" data-searchable-type="' + s.type + '" class="w2ui-input numeric" '+ getStyle(defaultWidth) + ' id="grid_'+ this.name +'_field2_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
                                 '</span>';
                         break;
 
                     case 'select':
-                        html += '<select rel="search" class="w2ui-input" style="'+ s.style +'" id="grid_'+ this.name +'_field_'+ i +'" '+
+                        htmlValue = '<select rel="search" class="w2ui-input" style="'+ s.style +'" id="grid_'+ this.name +'_field_'+ i +'" '+
                                 ' name="'+ s.field +'" '+ s.inTag +'></select>';
                         break;
 
                 }
-                html += s.outTag +
-                        '    </td>' +
-                        '</tr>';
+                if (inlineValue) {
+                    html += htmlValue;
+                }
+                else {
+                    html +=
+                        '    <' + htmlCell + ' class="value">' + htmlValue + s.outTag +
+                        '    </' + htmlCell + '>';
+                }
+                html += '</' + htmlRow + '>';
             }
             if (isLayout2) {
                 var buttonId = 'tb_' + this.name + '_toolbar_advanced_search_add_fields';
-                html += '<tr>' +
-                    '    <td colspan="3"><button id="' + buttonId + '" class="add" onclick="w2ui[\'' + this.name + '\'].searchSelectColumns(this);">' + w2utils.lang('Add field') + '</button></td>' +
-                    '</tr>';
+                var htmlButton = '<button id="' + buttonId + '" class="add" onclick="w2ui[\'' + this.name + '\'].searchSelectColumns(this);">' + w2utils.lang('Add field') + '</button>';
+                if (useGrid) {
+                    html += htmlButton;
+                }
+                else {
+                    html += '<tr>' +
+                        '    <td colspan="3">' + htmlButton + '</td>' +
+                        '</tr>';
+                }
             }
             var btnReset = '        <button type="button" class="w2ui-btn" onclick="obj = w2ui[\'' + this.name + '\']; if (obj) { obj.searchReset(); }">' + w2utils.lang('Reset') + '</button>';
             var btnSearch = '        <button type="button" class="w2ui-btn w2ui-btn-blue" onclick="obj = w2ui[\'' + this.name + '\']; if (obj) { obj.search(); }">' + w2utils.lang('Search (verb)', 'Search') + '</button>';
-            html += '<tr>'+
-                    '    <td colspan="4" class="actions">'+
-                    '        <div>'+
-                    (isLayout2 ? btnSearch : btnReset) +
-                    (isLayout2 ? btnReset : btnSearch) +
-                    '        </div>'+
-                    '    </td>'+
+            var htmlActions = (isLayout2 ? btnSearch : btnReset) + (isLayout2 ? btnReset : btnSearch);
+            if (useGrid) {
+                // Bottom buttons are not part of the "fields" grid.
+                html += '</div><div class="actions">' + htmlActions + '</div>';
+            }
+            else {
+                html += '<tr>' +
+                    '    <td colspan="4" class="actions">' +
+                    '        <div>' +
+                    htmlActions +
+                    '        </div>' +
+                    '    </td>' +
                     '</tr></tbody></table>';
+            }
             return html;
 
             function getOperators(type, fieldOperators) {
