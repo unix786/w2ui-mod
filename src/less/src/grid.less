@@ -851,9 +851,11 @@
             .w2ui-reset&:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]) {
                 /*Repeating the common selector to overcome its specificity. */
                 width: 100%;
+                min-width: 250px;
 
                 &[data-searchable-type=hex], &[data-searchable-type=color] {
                     width: @numeric-input-width;
+                    min-width: unset;
                 }
             }
         }
@@ -861,6 +863,7 @@
         input.numeric[type=text] {
             .w2ui-reset&:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]) {
                 width: @numeric-input-width;
+                min-width: unset;
 
                 &[data-searchable-type=datetime] {
                     width: 140px;
