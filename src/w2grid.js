@@ -1926,8 +1926,12 @@
             }
         },
 
+        getSearchFieldId: function (i, isSecondValue) {
+            return 'grid_' + this.name + '_field_' + i + (isSecondValue ? 'B' : '');
+        },
+
         search: function (field, value) {
-            var obj         = this;
+            var grid        = this;
             var url         = (typeof this.url != 'object' ? this.url : this.url.get);
             var searchData  = [];
             var last_multi  = this.last.multi;
@@ -1953,9 +1957,9 @@
                 // advanced search
                 for (var i = 0; i < this.searches.length; i++) {
                     var search   = this.searches[i];
-                    var operator = $('#grid_'+ this.name + '_operator_'+ i).val();
-                    var field1   = $('#grid_'+ this.name + '_field_'+ i);
-                    var field2   = $('#grid_'+ this.name + '_field2_'+ i);
+                    var operator = $('#grid_'+ grid.name + '_operator_'+ i).val();
+                    var field1   = $('#' + this.getSearchFieldId(i, false));
+                    var field2   = $('#' + this.getSearchFieldId(i, true));
                     var value1   = field1.val();
                     var value2   = field2.val();
                     var svalue   = null;
@@ -6513,7 +6517,6 @@
                 if (inlineStyle) commonAttributes += ' style="' + inlineStyle + '"';
                 if (s.inTag) commonAttributes += ' ' + s.inTag;
 
-                var valueElementId = 'grid_' + grid.name + '_field_' + i;
                 var valueHtml;
                 switch (s.type) {
                     case 'text':
@@ -6523,8 +6526,7 @@
                     case 'list':
                     case 'combo':
                     case 'enum':
-                        valueHtml =
-                            '<input type="text" class="w2ui-input value" data-searchable-type="' + s.type + '" id="' + valueElementId + '" ' + commonAttributes + '/>';
+                        valueHtml = '<input type="text" class="w2ui-input value" data-searchable-type="' + s.type + '" id="' + this.getSearchFieldId(i) + '" ' + commonAttributes + '/>';
                         break;
                     case 'int':
                     case 'float':
@@ -6535,10 +6537,10 @@
                     case 'time':
                     case 'datetime':
                         valueHtml = '<div class="value">' +
-                            '<input type="text" class="w2ui-input numeric" data-searchable-type="' + s.type + '" id="' + valueElementId + 'A" ' + commonAttributes + '/>' +
+                            '<input type="text" class="w2ui-input numeric" data-searchable-type="' + s.type + '" id="' + this.getSearchFieldId(i, false) + '" ' + commonAttributes + '/>' +
                             '<span id="grid_' + grid.name + '_range_' + i + '" style="display: none">' +
                             '<span class="input-separator">&#160;-&#160;</span>' +
-                            '<input type="text" class="w2ui-input numeric second-input" data-searchable-type="' + s.type + '" id="' + valueElementId + 'B" ' + commonAttributes + '/>' +
+                            '<input type="text" class="w2ui-input numeric second-input" data-searchable-type="' + s.type + '" id="' + this.getSearchFieldId(i, true) + '" ' + commonAttributes + '/>' +
                             '</span></div>';
                         break;
                     case 'select':
@@ -6615,7 +6617,7 @@
                     }
                 }
                 // init types
-                var inputField = $('#grid_' + this.name + '_field_' + s);
+                var inputField = $('#' + this.getSearchFieldId(s, false));
                 switch (search.type) {
                     case 'text':
                     case 'alphanumeric':
@@ -6633,10 +6635,11 @@
                     case 'time':
                     case 'datetime':
                         inputField.w2field(search.type, search.options);
-                        $('#grid_'+ this.name +'_field2_'+s).w2field(search.type, search.options);
+                        var secondField = $('#' + this.getSearchFieldId(s, true));
+                        secondField.w2field(search.type, search.options);
                         setTimeout(function () { // convert to date if it is number
                             inputField.keydown();
-                            $('#grid_'+ obj.name +'_field2_'+s).keydown();
+                            secondField.keydown();
                         }, 1);
                         break;
 
@@ -6682,7 +6685,7 @@
                             inputField.val(sdata.value).trigger('change');
                         } else {
                             inputField.val(sdata.value[0]).trigger('change');
-                            $('#grid_'+ this.name +'_field2_'+ s).val(sdata.value[1]).trigger('change');
+                            $('#' + this.getSearchFieldId(s, true)).val(sdata.value[1]).trigger('change');
                         }
                     }
                 } else {
