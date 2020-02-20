@@ -314,7 +314,6 @@
             toolbarColumns  : true,
             toolbarSearch   : true,
             toolbarSearchLayout2: false, // Альтернативный дизайн поиска: отдельное поле для выбора колонки, по которой искать. This makes hidden searches become cleared.
-            toolbarSearchGridLayout: false, // Use grid layout for "w2ui-search-advanced" overlay.
             toolbarInput    : true,
             toolbarAdd      : false,
             toolbarEdit     : false,
@@ -2260,7 +2259,7 @@
             this.last.searchItemVisibility = 'changePending';
 
             //getSearchesHTML adds "display: none" for hidden columns.
-            var row = jQuery('#w2ui-overlay-' + this.getSearchOverlayName() + ' .w2ui-grid-searches ' + this.show.toolbarSearchGridLayout ? '.fields > *' : 'table tr').eq(searchIdx);
+            var row = jQuery('#w2ui-overlay-' + this.getSearchOverlayName() + ' .w2ui-grid-searches .field').eq(searchIdx);
             if (check) {
                 row.show();
             }
@@ -6465,140 +6464,9 @@
         },
 
         getSearchesHTML: function () {
-            var obj  = this;
-            var useGrid = this.show.toolbarSearchGridLayout;
-            var html = useGrid ? '<div class="fields">' : '<table cellspacing="0" class="fields"><tbody>';
-            var showBtn = false;
-            var isLayout2 = this.show.toolbarSearchLayout2;
-            for (var i = 0; i < this.searches.length; i++) {
-                var s = this.searches[i];
-                s.type = String(s.type).toLowerCase();
-                if (s.hidden && !isLayout2) continue;
-                var btn = '';
-                if (showBtn == false) {
-                    // The button can only appear in the first row, but the column has to be repeated for every row.
-                    btn = '<button type="button" class="w2ui-btn close-btn" onclick="obj = w2ui[\''+ this.name +'\']; if (obj) obj.searchClose()">X</button>';
-                    showBtn = true;
-                }
-                if (s.inTag   == null) s.inTag  = '';
-                if (s.outTag  == null) s.outTag = '';
-                if (s.style   == null) s.style = '';
-                if (s.type    == null) s.type   = 'text';
-                if (s.label == null && s.caption != null) {
-                    console.log('NOTICE: grid search.caption property is deprecated, please use search.label. Search ->', s)
-                    s.label = s.caption;
-                }
-                var operator =
-                    '<select id="grid_'+ this.name +'_operator_'+ i +'" class="w2ui-input" ' +
-                    '   onchange="w2ui[\''+ this.name + '\'].initOperator(this, '+ i +')">' +
-                        getOperators(s.type, s.operators) +
-                    '</select>';
-
-                // "display: none" is needed for toggleSearchExt.
-                var htmlRow = useGrid ? 'div' : 'tr';
-                var htmlCell = useGrid ? 'div' : 'td';
-                html += '<' + htmlRow + (isLayout2 && s.hidden ? ' style="display:none"' : '') + '>'+
-                        (isLayout2 || useGrid ? '' : '    <td class="close-btn">'+ btn +'</td>') +
-                        '    <' + htmlCell + ' class="caption">'+ (s.label || '') +'</' + htmlCell + '>' +
-                        '    <' + htmlCell + ' class="operator">'+ operator +'</' + htmlCell + '>';
-
-                var getStyle = function (defaultWidth) {
-                    // cannot set width in CSS because the "reset" selector has very high specificity.
-                    // Alternatively could just repeat that selector in CSS for this case.
-                    return 'style="width:' + (s.width || defaultWidth) + ';' + s.style + '"';
-                };
-                var htmlValue = '';
-                var inlineValue = false;
-                switch (s.type) {
-                    case 'text':
-                    case 'alphanumeric':
-                    case 'hex':
-                    case 'color':
-                    case 'list':
-                    case 'combo':
-                    case 'enum':
-                        var defaultWidth;
-                        if (['hex', 'color'].indexOf(s.type) == -1) {
-                            if (useGrid) {
-                                defaultWidth = '100%';
-                                inlineValue = true;
-                            }
-                            else {
-                                defaultWidth = '250px';
-                            }
-                        }
-                        else {
-                            defaultWidth = '90px';
-                        }
-                        htmlValue = '<input rel="search" type="text" data-searchable-type="' + s.type + '" id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+
-                                '   class="w2ui-input non-numeric' + (inlineValue ? ' value' : '') + '" '+ getStyle(defaultWidth) +' '+ s.inTag +'/>';
-                        break;
-
-                    case 'int':
-                    case 'float':
-                    case 'money':
-                    case 'currency':
-                    case 'percent':
-                    case 'date':
-                    case 'time':
-                    case 'datetime':
-                        var defaultWidth = '90px';
-                        if (s.type == 'datetime') defaultWidth = '140px';
-                        htmlValue = '<input rel="search" type="text" data-searchable-type="' + s.type + '" class="w2ui-input numeric" '+ getStyle(defaultWidth) + ' id="grid_'+ this.name +'_field_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
-                                '<span id="grid_'+ this.name +'_range_'+ i +'" style="display: none">&#160;-&#160;' + (useGrid ? '' : '&#160;') +
-                                '<input rel="search" type="text" data-searchable-type="' + s.type + '" class="w2ui-input numeric" '+ getStyle(defaultWidth) + ' id="grid_'+ this.name +'_field2_'+ i +'" name="'+ s.field +'" '+ s.inTag +'/>'+
-                                '</span>';
-                        break;
-
-                    case 'select':
-                        htmlValue = '<select rel="search" class="w2ui-input" style="'+ s.style +'" id="grid_'+ this.name +'_field_'+ i +'" '+
-                                ' name="'+ s.field +'" '+ s.inTag +'></select>';
-                        break;
-
-                }
-                if (inlineValue) {
-                    html += htmlValue;
-                }
-                else {
-                    html +=
-                        '    <' + htmlCell + ' class="value">' + htmlValue + s.outTag +
-                        '    </' + htmlCell + '>';
-                }
-                html += '</' + htmlRow + '>';
-            }
-            if (isLayout2) {
-                var buttonId = 'tb_' + this.name + '_toolbar_advanced_search_add_fields';
-                var htmlButton = '<button id="' + buttonId + '" class="add" onclick="w2ui[\'' + this.name + '\'].searchSelectColumns(this);">' + w2utils.lang('Add field') + '</button>';
-                if (useGrid) {
-                    html += htmlButton;
-                }
-                else {
-                    html += '<tr>' +
-                        '    <td colspan="3">' + htmlButton + '</td>' +
-                        '</tr>';
-                }
-            }
-            var btnReset = '        <button type="button" class="w2ui-btn" onclick="obj = w2ui[\'' + this.name + '\']; if (obj) { obj.searchReset(); }">' + w2utils.lang('Reset') + '</button>';
-            var btnSearch = '        <button type="button" class="w2ui-btn w2ui-btn-blue" onclick="obj = w2ui[\'' + this.name + '\']; if (obj) { obj.search(); }">' + w2utils.lang('Search (verb)', 'Search') + '</button>';
-            var htmlActions = (isLayout2 ? btnSearch : btnReset) + (isLayout2 ? btnReset : btnSearch);
-            if (useGrid) {
-                // Bottom buttons are not part of the "fields" grid.
-                html += '</div><div class="actions">' + htmlActions + '</div>';
-            }
-            else {
-                html += '<tr>' +
-                    '    <td colspan="4" class="actions">' +
-                    '        <div>' +
-                    htmlActions +
-                    '        </div>' +
-                    '    </td>' +
-                    '</tr></tbody></table>';
-            }
-            return html;
-
             function getOperators(type, fieldOperators) {
                 var html = '';
-                var operators = obj.operators[obj.operatorsMap[type]];
+                var operators = grid.operators[grid.operatorsMap[type]];
                 if (fieldOperators != null) operators = fieldOperators;
                 for (var i = 0; i < operators.length; i++) {
                     var oper = operators[i];
@@ -6611,10 +6479,94 @@
                         text = oper.text;
                         oper = oper.oper;
                     }
-                    html += '<option value="'+ oper +'">'+ w2utils.lang(text) +'</option>\n';
+                    html += '<option value="' + oper + '">' + w2utils.lang(text) + '</option>';
                 }
                 return html;
             }
+
+            var grid = this;
+            var html = '<div class="fields">';
+            //var closeButton = '<button type="button" class="w2ui-btn close-btn" onclick="obj = w2ui[\'' + this.name + '\']; if (obj) obj.searchClose()">X</button>';
+
+            for (var i = 0; i < grid.searches.length; i++) {
+                var s = grid.searches[i];
+                s.type = String(s.type).toLowerCase();
+                if (s.inTag == null) s.inTag = '';
+                if (s.outTag == null) s.outTag = '';
+                if (s.style == null) s.style = '';
+                if (s.type == null) s.type = 'text';
+                if (s.label == null && s.caption != null) {
+                    console.log('NOTICE: grid search.caption property is deprecated, please use search.label. Search ->', s)
+                    s.label = s.caption;
+                }
+
+                var operatorHtml = '<select id="grid_' + grid.name + '_operator_' + i + '" ' +
+                    'class="w2ui-input operator" onchange = "w2ui[\'' + grid.name + '\'].initOperator(this, ' + i + ')" > ' +
+                    getOperators(s.type, s.operators) +
+                    '</select>';
+
+                var commonAttributes = 'name="' + s.field + '" rel="search"';
+
+                var inlineStyle = '';
+                if (s.width) inlineStyle += 'width:' + s.width + ';';
+                if (s.style) inlineStyle += s.style;
+                if (inlineStyle) commonAttributes += ' style="' + inlineStyle + '"';
+                if (s.inTag) commonAttributes += ' ' + s.inTag;
+
+                var valueElementId = 'grid_' + grid.name + '_field_' + i;
+                var valueHtml;
+                switch (s.type) {
+                    case 'text':
+                    case 'alphanumeric':
+                    case 'hex':
+                    case 'color':
+                    case 'list':
+                    case 'combo':
+                    case 'enum':
+                        valueHtml =
+                            '<input type="text" class="w2ui-input value" data-searchable-type="' + s.type + '" id="' + valueElementId + '" ' + commonAttributes + '/>';
+                        break;
+                    case 'int':
+                    case 'float':
+                    case 'money':
+                    case 'currency':
+                    case 'percent':
+                    case 'date':
+                    case 'time':
+                    case 'datetime':
+                        valueHtml = '<div class="value">' +
+                            '<input type="text" class="w2ui-input numeric" data-searchable-type="' + s.type + '" id="' + valueElementId + 'A" ' + commonAttributes + '/>' +
+                            '<span id="grid_' + grid.name + '_range_' + i + '" style="display: none">' +
+                            '<span class="input-separator">&#160;-&#160;</span>' +
+                            '<input type="text" class="w2ui-input numeric second-input" data-searchable-type="' + s.type + '" id="' + valueElementId + 'B" ' + commonAttributes + '/>' +
+                            '</span></div>';
+                        break;
+                    case 'select':
+                        valueHtml = '<select class="w2ui-input value" id="' + valueElementId + '" ' + commonAttributes + '></select>';
+                        break;
+                    default:
+                        break;
+                }
+
+                if (!valueHtml) continue;
+
+                html += '<div class="field" ' + (s.hidden ? 'style="display:none"' : '') + '>'
+                    + '<span class="label">' + (s.label || '') + '</span>'
+                    + operatorHtml
+                    + valueHtml
+                    + '</div>';
+            }
+
+            html += '<button id="tb_' + grid.name + '_toolbar_advanced_search_add_fields" class="add-button" onclick="w2ui[\'' + grid.name + '\'].searchSelectColumns(this);">'
+                + w2utils.lang('Add field')
+                + '</button>'
+                + '</div>' // end of .fields
+                + '<div class="actions">'
+                + '<button type="button" class="w2ui-btn" onclick="obj = w2ui[\'' + grid.name + '\']; if (obj) { obj.searchReset(); }">' + w2utils.lang('Reset') + '</button>'
+                + '<button type="button" class="w2ui-btn w2ui-btn-blue" onclick="obj = w2ui[\'' + grid.name + '\']; if (obj) { obj.search(); }">' + w2utils.lang('Search (verb)', 'Search') + '</button>'
+                + '</div>';
+
+            return html;
         },
 
         /** Used in getSearchesHTML. */

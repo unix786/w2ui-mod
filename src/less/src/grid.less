@@ -3,6 +3,7 @@
 */
 
 .w2ui-grid {
+    height: 400px;
     position: relative;
     border: @grid-border;
     border-radius: 2px;
@@ -767,88 +768,90 @@
     padding: 0px;
     border-top: 0px;
     background-color: @grid-searches-background-color;
-    table, .fields {
-        padding: 4px;
-        padding-top: 12px;
-    }
 
     .fields {
+        padding: 12px 4px 4px 12px;
         display: grid;
         grid-template-columns: fit-content(30%) minmax(auto, max-content) auto;
         grid-gap: 8px 10px;
         align-items: center;
 
-        > div {
-            /*Elements are split into groups to make it easier to hide rows.*/
+        .field {
             display: contents;
         }
-    }
 
-    table {
-        border-collapse: border-collapse;
+        .label {
+            text-align: right;
+        }
 
-        td {
-            padding: 4px;
+        .operator {
+            text-align: left;
+            padding: 0px 10px;
 
-            &.actions {
-                border-right: 0px;
+            select {
+                width: 100%;
+                color: black;
+            }
 
-                > div {
-                    margin: -7px;
-                    margin-top: 15px;
+            select::-ms-expand {
+                /* for IE */
+                display: none;
+            }
+        }
+
+        .value select, input[type=text] {
+            padding: 3px;
+            margin-right: 3px;
+            height: 23px;
+        }
+
+        @numeric-input-width: 90px;
+
+        input[type=text] {
+            border-radius: 3px;
+
+            .w2ui-reset&:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]) {
+                /*Repeating the common selector to overcome its specificity. */
+                width: 100%;
+
+                &[data-searchable-type=hex], &[data-searchable-type=color] {
+                    width: @numeric-input-width;
                 }
             }
+        }
+
+        input.numeric[type=text] {
+            .w2ui-reset&:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]) {
+                width: @numeric-input-width;
+
+                &[data-searchable-type=datetime] {
+                    width: 140px;
+                }
+            }
+        }
+
+        .input-separator {
+            /*Adding 1px for symmetry.*/
+            padding-right: 1px;
         }
     }
 
     .close-btn {
         width: 20px;
         padding-right: 20px;
+
         button {
             min-width: 24px;
             height: 24px;
             padding-top: 5px !important;
         }
     }
-    .caption {
-        text-align: right;
-        padding-right: 5px;
-        border-right: @grid-searches-inner-border;
-    }
-    .operator {
-        text-align: left;
-        padding: 0px 10px;
-        padding-right: 5px;
-        border-right: @grid-searches-inner-border;
-    }
-    .operator select {
-        width: 100%;
-        color: black;
-    }
-    .operator select::-ms-expand {
-        /* for IE */
-        display: none;
-    }
-    .value {
-        padding-right: 5px;
-        padding-left: 5px;
 
-        select {
-            padding: 3px;
-            margin-right: 3px;
-            height: 23px;
-        }
-    }
-
-    input[type=text] {
-        border-radius: 3px;
-        padding: 3px;
-        margin-right: 3px;
-        height: 23px;
-    }
-    button.add {
+    .add-button {
         background: none;
+        border: none;
         color: blue;
+        text-align: left;
         grid-column-start: 1;
         grid-column-end: -1;
         max-width: max-content;
@@ -858,15 +861,13 @@
             cursor: pointer;
         }
     }
-    table td.actions > div, > .actions {
+
+    .actions {
         margin-top: 15px;
         padding: 13px 0px;
         text-align: center;
         background-color: @grid-searches-buttons-background-color;
         border-top: @grid-searches-inner-border;
-    }
-
-    > .actions {
         border-bottom-left-radius: inherit;
         border-bottom-right-radius: inherit;
     }
