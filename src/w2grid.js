@@ -2373,8 +2373,7 @@
             }
             if (i > 0) html += '</tr>';
             html += '</table>';
-            var buttonId = button.id;
-            $('#' + buttonId).w2overlay({
+            $(button).w2overlay({
                 html: html,
                 name: this.getSearchSelectColumnOverlayName(),
                 class: 'w2ui-grid-searches-column-select',
@@ -6704,7 +6703,7 @@
                     + '</div>';
             }
 
-            html += '<button id="tb_' + grid.name + '_toolbar_advanced_search_add_fields" class="add-button" onclick="w2ui[\'' + grid.name + '\'].searchSelectColumns(this);">'
+            html += '<button class="add-button" onclick="w2ui[\'' + grid.name + '\'].searchSelectColumns(this);">'
                 + w2utils.lang('Add field')
                 + '</button>'
                 + '</div>' // end of .fields
