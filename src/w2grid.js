@@ -2317,6 +2317,16 @@
         },
 
         /**
+         * Something keeps adding inline styles upon showing. This is a temporary fix.
+         * @param {any} elements jQuery selection.
+         */
+        inlineStyleWorkaround: function (elements) {
+            elements.css('height', '');
+            elements.css('padding-left', '');
+            elements.css('padding-right', '');
+        },
+
+        /**
          * Toggles display of a field in "w2ui-grid-searches".
          * @param {any} element from searchSelectColumns
          */
@@ -2337,10 +2347,7 @@
                 row.show();
 
                 // Something keeps adding inline styles upon showing.
-                var inputElements = row.find('input');
-                inputElements.css('height', '');
-                inputElements.css('padding-left', '');
-                inputElements.css('padding-right', '');
+                this.inlineStyleWorkaround(row.find('input'));
             }
             else {
                 row.hide();
@@ -6726,13 +6733,14 @@
             var obj     = this;
             var search  = obj.searches[search_ind];
             var range   = $('#grid_'+ obj.name + '_range_'+ search_ind);
-            var fld1    = $('#grid_'+ obj.name +'_field_'+ search_ind);
-            var fld2    = fld1.parent().find('span input');
+            var fld1    = $(this.getSearchFieldId(search_ind, false));
+            var fld2    = $(this.getSearchFieldId(search_ind, true));
             fld1.show();
             range.hide();
             switch ($(el).val()) {
                 case 'between':
                     range.show();
+                    this.inlineStyleWorkaround(fld2);
                     fld2.w2field(search.type, search.options);
                     break;
                 case 'not null':
