@@ -2543,7 +2543,7 @@ w2utils.event = {
         // monitor position
         function monitor() {
             var tmp = getRootDiv();
-            if (tmp.data('element') !== obj[0]) return; // it if it different overlay
+            if (tmp.data('element') !== obj[0]) return; // if its a different overlay
             if (tmp.length === 0) return;
             var offset = $(obj).offset() || {};
             var pos = offset.left + 'x' + offset.top;
@@ -2648,12 +2648,18 @@ w2utils.event = {
                         tipLeft = w - 40;
                         break;
                 }
-                if (w === 30 && !boxWidth) boxWidth = 30; else boxWidth = (options.width ? options.width : 'auto');
-                var tmp = (w - 17) / 2;
-                if (boxWidth !== 'auto') tmp = (boxWidth - 17) / 2;
-                if (tmp < 25) {
-                    boxLeft = 25 - tmp;
-                    tipLeft = Math.floor(tmp);
+                if (w > window.innerWidth) {
+                    boxWidth = window.innerWidth;
+                    tipLeft = null;
+                }
+                else {
+                    if (w === 30 && !boxWidth) boxWidth = 30; else boxWidth = (options.width ? options.width : 'auto');
+                    var tmp = (w - 17) / 2;
+                    if (boxWidth !== 'auto') tmp = (boxWidth - 17) / 2;
+                    if (tmp < 25) {
+                        boxLeft = 25 - tmp;
+                        tipLeft = Math.floor(tmp);
+                    }
                 }
                 // Y coord
                 var X, Y, offsetTop;
@@ -2667,12 +2673,24 @@ w2utils.event = {
                     Y = (offset.top + w2utils.getSize(obj, 'height') + options.top + 7);
                     offsetTop = offset.top;
                 }
-                div1.css({
-                    left        :  X + 'px',
-                    top         :  Y + 'px',
-                    'min-width' : boxWidth,
-                    'min-height': (options.height ? options.height : 'auto')
-                });
+                if (X < 0) X = 0;
+                if (boxWidth !== 'auto' && X + boxWidth > window.innerWidth) {
+                    div1.css({
+                        left: '0px',
+                        top: Y + 'px',
+                        'min-width': '',
+                        width: 'auto',
+                        'min-height': (options.height ? options.height : 'auto')
+                    });
+                }
+                else {
+                    div1.css({
+                        left: X + 'px',
+                        top: Y + 'px',
+                        'min-width': boxWidth,
+                        'min-height': (options.height ? options.height : 'auto')
+                    });
+                }
                 // $(window).height() - has a problem in FF20
                 var offset = div2.offset() || {};
                 var maxHeight = window.innerHeight + $(document).scrollTop() - offset.top - 7;
@@ -2682,40 +2700,42 @@ w2utils.event = {
                     maxWidth  = window.innerWidth + $(document).scrollLeft() - options.pageX;
                 }
 
-                if ((maxHeight > -50 && maxHeight < 210) || options.openAbove === true) {
-                    var tipOffset;
-                    // show on top
-                    if (options.contextMenu) { // context menu
-                        maxHeight = options.pageY - 7;
-                        tipOffset = 5;
+                if (tipLeft) {
+                    if ((maxHeight > -50 && maxHeight < 210) || options.openAbove === true) {
+                        var tipOffset;
+                        // show on top
+                        if (options.contextMenu) { // context menu
+                            maxHeight = options.pageY - 7;
+                            tipOffset = 5;
+                        } else {
+                            maxHeight = offset.top - $(document).scrollTop() - 7;
+                            tipOffset = 24;
+                        }
+                        if (options.maxHeight && maxHeight > options.maxHeight) maxHeight = options.maxHeight;
+                        if (h > maxHeight) {
+                            overflowY = true;
+                            div2.height(maxHeight).width(w).css({ 'overflow-y': 'auto' });
+                            h = maxHeight;
+                        }
+                        div1.addClass('bottom-arrow');
+                        div1.css('top', (offsetTop - h - tipOffset + options.top) + 'px');
+                        div1.find('>style').html(
+                            '#w2ui-overlay' + name + ':before { margin-left: ' + parseInt(tipLeft) + 'px; }' +
+                            '#w2ui-overlay' + name + ':after { margin-left: ' + parseInt(tipLeft) + 'px; }'
+                        );
                     } else {
-                        maxHeight = offset.top - $(document).scrollTop() - 7;
-                        tipOffset = 24;
+                        // show under
+                        if (options.maxHeight && maxHeight > options.maxHeight) maxHeight = options.maxHeight;
+                        if (h > maxHeight) {
+                            overflowY = true;
+                            div2.height(maxHeight).width(w).css({ 'overflow-y': 'auto' });
+                        }
+                        div1.addClass('top-arrow');
+                        div1.find('>style').html(
+                            '#w2ui-overlay' + name + ':before { margin-left: ' + parseInt(tipLeft) + 'px; }' +
+                            '#w2ui-overlay' + name + ':after { margin-left: ' + parseInt(tipLeft) + 'px; }'
+                        );
                     }
-                    if (options.maxHeight && maxHeight > options.maxHeight) maxHeight = options.maxHeight;
-                    if (h > maxHeight) {
-                        overflowY = true;
-                        div2.height(maxHeight).width(w).css({ 'overflow-y': 'auto' });
-                        h = maxHeight;
-                    }
-                    div1.addClass('bottom-arrow');
-                    div1.css('top', (offsetTop - h - tipOffset + options.top) + 'px');
-                    div1.find('>style').html(
-                        '#w2ui-overlay'+ name +':before { margin-left: '+ parseInt(tipLeft) +'px; }'+
-                        '#w2ui-overlay'+ name +':after { margin-left: '+ parseInt(tipLeft) +'px; }'
-                    );
-                } else {
-                    // show under
-                    if (options.maxHeight && maxHeight > options.maxHeight) maxHeight = options.maxHeight;
-                    if (h > maxHeight) {
-                        overflowY = true;
-                        div2.height(maxHeight).width(w).css({ 'overflow-y': 'auto' });
-                    }
-                    div1.addClass('top-arrow');
-                    div1.find('>style').html(
-                        '#w2ui-overlay'+ name +':before { margin-left: '+ parseInt(tipLeft) +'px; }'+
-                        '#w2ui-overlay'+ name +':after { margin-left: '+ parseInt(tipLeft) +'px; }'
-                    );
                 }
                 // check width
                 w = div2.width();
