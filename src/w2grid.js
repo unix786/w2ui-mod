@@ -2266,6 +2266,12 @@
             var row = jQuery('#w2ui-overlay-' + this.getSearchOverlayName() + ' .w2ui-grid-searches .field').eq(searchIdx);
             if (check) {
                 row.show();
+
+                // Something keeps adding inline styles upon showing.
+                var inputElements = row.find('input');
+                inputElements.css('height', '');
+                inputElements.css('padding-left', '');
+                inputElements.css('padding-right', '');
             }
             else {
                 row.hide();
