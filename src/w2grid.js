@@ -2370,27 +2370,21 @@
          * @param {any} button Element at which to display the overlay (must have an id set).
          */
         searchSelectColumns: function (button) {
-            var html = '<table>';
-            const columns = 3;
-            for (var i = 0, j = 0; i < this.searches.length; i++ , j = (j + 1) % columns) {
+            var html = '';
+            for (var i = 0; i < this.searches.length; i++) {
                 var s = this.searches[i];
-                if (j === 0) {
-                    if (i > 0) html += '</tr>';
-                    html += '<tr>';
-                }
-                html += '<td>' +
+                //if (i > 0) html += '\n';
+                html +=
                     '<div class="ui checkbox" data-field="' + s.field + '" onclick="w2ui[\'' + this.name +'\'].toggleSearchExt(this)">' +
                     '  <input type="checkbox"' + (s.hidden ? '' : ' checked') + '>' +
-                    '  <label>' + (s.label || '') + '</label>'
-                    '</td>';
+                    '  <label>' + (s.label || '') + '</label>' +
+                    '</div>';
             }
-            if (i > 0) html += '</tr>';
-            html += '</table>';
             $(button).w2overlay({
                 html: html,
                 name: this.getSearchSelectColumnOverlayName(),
                 class: 'w2ui-grid-searches-column-select',
-                keepOnParentPosChange: true
+                keepOnParentPosChange: true // This overlay must stay open and in one place as changes to the parent are being made.
             });
         },
 

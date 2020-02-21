@@ -915,8 +915,9 @@
 }
 
 .w2ui-overlay .w2ui-grid-searches-column-select {
-    table {
-        padding: 4px 6px;
-        border-spacing: 6px;
-    }
+    padding: 4px 6px;
+    display: grid;
+    grid-gap: 6px;
+    max-width: 450px;
+    grid-template-columns: repeat(3, auto);
 }
