@@ -31,6 +31,7 @@
     }
 
     // ===== Grid Toolbar =====
+    @grid-toolbar-search-prefered-width: 160px;
 
     .w2ui-grid-toolbar {
         position: absolute;
@@ -40,27 +41,35 @@
         padding: 6px 1px 4px 1px;
         margin: 0px;
         box-shadow: @grid-toolbar-shadow;
+
+        &.multi-row .w2ui-toolbar-search {
+            /*Can't do flex here. Need an identifier or a class on the root element.*/
+            /*width: auto;
+            flex: auto;*/
+        }
     }
-
     // ===== Grid Search =====
-
     .w2ui-toolbar-search {
         position: relative;
         width: 160px;
         margin-right: 3px;
 
-        .w2ui-search-all {
-            outline: none !important;
-            width: 160px !important;
-            border-radius: 3px !important;
-            line-height: normal !important;
-            height: 23px !important;
-            border: @grid-search-all-border !important;
-            color: @grid-search-all-color !important;
-            background-color: @grid-search-all-background-color !important;
-            padding: 3px 18px 3px 21px !important;
-            margin: 0px !important;
-            margin-top: 1px !important;
+        input.w2ui-search-all {
+            outline: none;
+            border-radius: 3px;
+            line-height: normal;
+            border: @grid-search-all-border;
+            color: @grid-search-all-color;
+            background-color: @grid-search-all-background-color;
+
+            .w2ui-reset&:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]) {
+                /*Repeating the common selector to overcome its specificity. */
+                width: 160px;
+                height: 23px;
+                padding: 3px 18px 3px 21px;
+                margin: 0px;
+                margin-top: 1px;
+            }
         }
 
         .w2ui-search-down {

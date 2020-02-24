@@ -310,6 +310,7 @@
             expandColumn    : false,
             selectColumn    : false,
             emptyRecords    : true,
+            toolbarOverflowIntoNextRow: false, // w2toolbar.overflowIntoNextRow
             toolbarReload   : true,
             toolbarColumns  : true,
             toolbarSearch   : true,
@@ -2432,12 +2433,12 @@
 
         /**
          * Shows column selection overlay for toolbar filter.
-         * @param {any} buttonId target element Id to show overlay.
+         * @param {any} button target element to show overlay.
          */
-        searchShowFields: function (buttonId) {
+        searchShowFields: function (button) {
             var grid = this;
             var el   = this.getSearchAll();
-            if (!buttonId) button = el[0].id;
+            if (!button) button = el[0];
             var html = '<div class="w2ui-select-field"><table><tbody>';
             var overlayName = grid.name + '-searchFields';
             for (var s = -1; s < this.searches.length; s++) {
@@ -2457,7 +2458,7 @@
                 }
 
                 html += '<tr '+ (w2utils.isIOS ? 'onTouchStart' : 'onClick') +'="w2ui[\''+ grid.name +'\'].initAllField(\''+ search.field +'\');'+
-                        '      event.stopPropagation(); jQuery(\'' + buttonId + '\').w2overlay({ name: \''+ overlayName + '\' });">'+
+                        '      event.stopPropagation(); jQuery(\'#' + button.id + '\').w2overlay({ name: \''+ overlayName + '\' });">'+
                         '   <td>'+
                         '       <span class="w2ui-column-check w2ui-icon-'+ (search.field == this.last.field ? 'check' : 'empty') +'"></span>'+
                         '   </td>'+
@@ -2467,7 +2468,7 @@
             html += "</tbody></table></div>";
             // need timer otherwise does not show with list type
             setTimeout(function () {
-                $('#' + buttonId).w2overlay({ html: html, name: overlayName, left: -10 });
+                $(button).w2overlay({ html: html, name: overlayName, left: -10 });
             }, 1);
         },
 
@@ -5068,20 +5069,20 @@
                     obj.last.move = { type: 'text-select' };
                     obj.last.userSelect = 'text';
                 } else {
-                    var tmp = event.target;
                     var pos = {
                         x: event.offsetX - 10,
                         y: event.offsetY - 10
                     }
-                    var tmps = false;
-                    while (tmp) {
+                    // Calculate position relative to the grid.
+                    for (var tmp = event.target; tmp != null; tmp = tmp.parentNode) {
                         if (tmp.classList && tmp.classList.contains('w2ui-grid')) break;
-                        if (tmp.tagName && tmp.tagName.toUpperCase() == 'TD') tmps = true;
-                        if (tmp.tagName && tmp.tagName.toUpperCase() != 'TR' && tmps == true) {
-                            pos.x += tmp.offsetLeft;
-                            pos.y += tmp.offsetTop;
+                        if (tmp.tagName && tmp.tagName.toUpperCase() == 'TD') {
+                            var cellRect = tmp.getBoundingClientRect();
+                            var gridRect = obj.box.getBoundingClientRect();
+                            pos.x += cellRect.x - gridRect.x;
+                            pos.y += cellRect.y - gridRect.y;
+                            break;
                         }
-                        tmp = tmp.parentNode;
                     }
 
                     obj.last.move = {
@@ -5103,24 +5104,12 @@
                     var $input = $(obj.box).find('#grid_'+ obj.name + '_focus');
                     // move input next to cursor so screen does not jump
                     if (obj.last.move) {
-                        var sLeft  = obj.last.move.focusX;
                         var sTop   = obj.last.move.focusY;
-                        var $owner = $(target).parents('table').parent();
-                        if ($owner.hasClass('w2ui-grid-records') || $owner.hasClass('w2ui-grid-frecords')
-                                || $owner.hasClass('w2ui-grid-columns') || $owner.hasClass('w2ui-grid-fcolumns')
-                                || $owner.hasClass('w2ui-grid-summary')) {
-                            sLeft = obj.last.move.focusX - $(obj.box).find('#grid_'+ obj.name +'_records').scrollLeft();
-                            sTop  = obj.last.move.focusY - $(obj.box).find('#grid_'+ obj.name +'_records').scrollTop();
-                        }
                         if ($(target).hasClass('w2ui-grid-footer') || $(target).parents('div.w2ui-grid-footer').length > 0) {
                             sTop = $(obj.box).find('#grid_'+ obj.name +'_footer').position().top;
                         }
-                        // if clicked on toolbar
-                        if ($owner.hasClass('w2ui-scroll-wrapper') && $owner.parent().hasClass('w2ui-toolbar')) {
-                            sLeft = obj.last.move.focusX - $owner.scrollLeft();
-                        }
                         $input.css({
-                            left: sLeft - 10,
+                            left: obj.last.move.focusX - 10,
                             top : sTop
                         });
                     }
@@ -5819,7 +5808,7 @@
             if (this.toolbar['render'] == null) {
                 var tmp_items = this.toolbar.items || [];
                 this.toolbar.items = [];
-                this.toolbar = $().w2toolbar($.extend(true, {}, this.toolbar, { name: this.name +'_toolbar', owner: this }));
+                this.toolbar = $().w2toolbar($.extend(true, {}, this.toolbar, { name: this.name +'_toolbar', owner: this, overflowIntoNextRow: this.show.toolbarOverflowIntoNextRow }));
 
                 // =============================================
                 // ------ Toolbar Generic buttons
