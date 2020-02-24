@@ -331,6 +331,7 @@
             expandColumn    : false,
             selectColumn    : false,
             emptyRecords    : true,
+            toolbarOverflowIntoNextRow: false, // w2toolbar.overflowIntoNextRow
             toolbarReload   : true,
             toolbarColumns  : true,
             toolbarSearch   : true,
@@ -2499,7 +2500,11 @@
             this.trigger($.extend(edata, { phase: 'after' }));
         },
 
-        searchShowFields: function (forceHide) {
+        /**
+         * Shows column selection overlay for toolbar filter.
+         * @param {any} button target element to show overlay.
+         */
+        searchShowFields: function (forceHide, button) {
             var grid = this;
             var el   = this.getSearchAll();
             var overlayName = grid.name + '-searchFields';
@@ -2507,6 +2512,7 @@
                 $(el).w2overlay({ name: overlayName });
                 return;
             }
+            if (!button) button = el[0];
             var html = '<div class="w2ui-select-field"><table><tbody>';
             for (var s = -1; s < this.searches.length; s++) {
                 var search = this.searches[s];
@@ -2540,7 +2546,7 @@
                         ) +
                         (w2utils.isIOS ? 'onTouchStart' : 'onClick') +'="event.stopPropagation(); '+
                         '           w2ui[\''+ grid.name +'\'].initAllField(\''+ search.field +'\');'+
-                        '           jQuery(\'#' + buttonId + '\').w2overlay({ name: \''+ overlayName + '\' });"'+
+                        '           jQuery(\'#' + button.id + '\').w2overlay({ name: \''+ overlayName + '\' });"'+
                         '           jQuery(this).addClass(\'w2ui-selected\');'+
                         '      onmousedown="jQuery(this).parent().find(\'tr\').removeClass(\'w2ui-selected\'); jQuery(this).addClass(\'w2ui-selected\')" ' +
                         '      onmouseup="jQuery(this).removeClass(\'w2ui-selected\')" ' +
@@ -2556,7 +2562,7 @@
             if ($('#w2ui-overlay-'+ overlayName).length == 1) html = '';  // hide if visible
             // need timer otherwise does not show with list type
             setTimeout(function () {
-                $('#' + buttonId).w2overlay({ html: html, name: overlayName, left: -10 });
+                $(button).w2overlay({ html: html, name: overlayName, left: -10 });
             }, 1);
         },
 
@@ -5180,20 +5186,20 @@
                     obj.last.move = { type: 'text-select' };
                     obj.last.userSelect = 'text';
                 } else {
-                    var tmp = event.target;
                     var pos = {
                         x: event.offsetX - 10,
                         y: event.offsetY - 10
                     }
-                    var tmps = false;
-                    while (tmp) {
+                    // Calculate position relative to the grid.
+                    for (var tmp = event.target; tmp != null; tmp = tmp.parentNode) {
                         if (tmp.classList && tmp.classList.contains('w2ui-grid')) break;
-                        if (tmp.tagName && tmp.tagName.toUpperCase() == 'TD') tmps = true;
-                        if (tmp.tagName && tmp.tagName.toUpperCase() != 'TR' && tmps == true) {
-                            pos.x += tmp.offsetLeft;
-                            pos.y += tmp.offsetTop;
+                        if (tmp.tagName && tmp.tagName.toUpperCase() == 'TD') {
+                            var cellRect = tmp.getBoundingClientRect();
+                            var gridRect = obj.box.getBoundingClientRect();
+                            pos.x += cellRect.x - gridRect.x;
+                            pos.y += cellRect.y - gridRect.y;
+                            break;
                         }
-                        tmp = tmp.parentNode;
                     }
 
                     obj.last.move = {
@@ -5215,24 +5221,12 @@
                     var $input = $(obj.box).find('#grid_'+ obj.name + '_focus');
                     // move input next to cursor so screen does not jump
                     if (obj.last.move) {
-                        var sLeft  = obj.last.move.focusX;
                         var sTop   = obj.last.move.focusY;
-                        var $owner = $(target).parents('table').parent();
-                        if ($owner.hasClass('w2ui-grid-records') || $owner.hasClass('w2ui-grid-frecords')
-                                || $owner.hasClass('w2ui-grid-columns') || $owner.hasClass('w2ui-grid-fcolumns')
-                                || $owner.hasClass('w2ui-grid-summary')) {
-                            sLeft = obj.last.move.focusX - $(obj.box).find('#grid_'+ obj.name +'_records').scrollLeft();
-                            sTop  = obj.last.move.focusY - $(obj.box).find('#grid_'+ obj.name +'_records').scrollTop();
-                        }
                         if ($(target).hasClass('w2ui-grid-footer') || $(target).parents('div.w2ui-grid-footer').length > 0) {
                             sTop = $(obj.box).find('#grid_'+ obj.name +'_footer').position().top;
                         }
-                        // if clicked on toolbar
-                        if ($owner.hasClass('w2ui-scroll-wrapper') && $owner.parent().hasClass('w2ui-toolbar')) {
-                            sLeft = obj.last.move.focusX - $owner.scrollLeft();
-                        }
                         $input.css({
-                            left: sLeft - 10,
+                            left: obj.last.move.focusX - 10,
                             top : sTop
                         });
                     }
@@ -5950,7 +5944,7 @@
             if (this.toolbar['render'] == null) {
                 var tmp_items = this.toolbar.items || [];
                 this.toolbar.items = [];
-                this.toolbar = $().w2toolbar($.extend(true, {}, this.toolbar, { name: this.name +'_toolbar', owner: this }));
+                this.toolbar = $().w2toolbar($.extend(true, {}, this.toolbar, { name: this.name +'_toolbar', owner: this, overflowIntoNextRow: this.show.toolbarOverflowIntoNextRow }));
 
                 // =============================================
                 // ------ Toolbar Generic buttons

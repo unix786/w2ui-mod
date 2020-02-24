@@ -30,6 +30,7 @@
         this.items     = [];
         this.right     = '';        // HTML text on the right of toolbar
         this.tooltip   = 'top|left';// can be top, bottom, left, right
+        this.overflowIntoNextRow = false; // By default, upon lack of space the toolbar becomes scrollable.
 
         $.extend(true, this, w2obj.toolbar, options);
     };
@@ -168,10 +169,11 @@
 
         /**
          * Gets element id from unescaped item id (key).
-         * @param {any} itemKey id from items array.
+         * @param {any} item item from items array.
+         * @param {any} isItemId indicates that the first argument is actually "item.id".
          */
-        getFullItemId: function(itemKey) {
-            return 'tb_' + this.name + '_item_' + w2utils.escapeId(itemKey);
+        getElementId: function(item, isItemId) {
+            return 'tb_' + this.name + '_item_' + w2utils.escapeId(isItemId ? item : item.id);
         },
 
         remove: function () {
@@ -181,7 +183,7 @@
                 if (!it || String(arguments[a]).indexOf(':') != -1) continue;
                 removed++;
                 // remove from screen
-                $(this.box).find('#' + this.getFullItemId(it.id)).remove();
+                $(this.box).find('#' + this.getElementId(it)).remove();
                 // remove from array
                 var ind = this.get(it.id, true);
                 if (ind != null) this.items.splice(ind, 1);
@@ -317,7 +319,7 @@
                 if (['menu', 'menu-radio', 'menu-check', 'drop', 'color', 'text-color'].indexOf(it.type) != -1 && it.checked) {
                     // hide overlay
                     setTimeout(function () {
-                        var el = $('#tb_'+ obj.name +'_item_'+ w2utils.escapeId(it.id));
+                        var el = $('#' + obj.getElementId(it));
                         el.w2overlay({ name: obj.name, data: { "tb-item": it.id }});
                     }, 1);
                 }
@@ -351,7 +353,7 @@
                     item: it, object: it, originalEvent: event });
                 if (edata.isCancelled === true) return;
 
-                var btn = '#tb_'+ this.name +'_item_'+ w2utils.escapeId(it.id) +' table.w2ui-button';
+                var btn = '#' + this.getElementId(it) +' table.w2ui-button';
                 $(btn).removeClass('down'); // need to requery at the moment -- as well as elsewhere in this function
 
                 if (it.type == 'radio') {
@@ -374,7 +376,7 @@
                         // if it was already checked, second click will hide it
                         setTimeout(function () {
                             // hide overlay
-                            var el = $('#tb_'+ obj.name +'_item_'+ w2utils.escapeId(it.id));
+                            var el = $('#' + this.getElementId(it));
                             el.w2overlay({ name: obj.name, data: { "tb-item": it.id }});
                             // uncheck
                             it.checked = false;
@@ -385,7 +387,7 @@
 
                         // show overlay
                         setTimeout(function () {
-                            var el = $('#tb_'+ obj.name +'_item_'+ w2utils.escapeId(it.id));
+                            var el = $('#' + this.getElementId(it));
                             if (!$.isPlainObject(it.overlay)) it.overlay = {};
                             var left = (el.width() - 50) / 2;
                             if (left > 19) left = 19;
@@ -504,6 +506,17 @@
             setTimeout(function () { obj.resize(); }, 350);
         },
 
+        beforeRender: function (it) {
+            if (it == null) return;
+            if (it.id == null) it.id = i;
+            if (it.caption != null) {
+                console.log('NOTICE: toolbar item.caption property is deprecated, please use item.text. Item -> ', it)
+            }
+            if (it.hint != null) {
+                console.log('NOTICE: toolbar item.hint property is deprecated, please use item.tooltip. Item -> ', it)
+            }
+        },
+
         render: function (box) {
             var time = (new Date()).getTime();
             // event before
@@ -521,40 +534,43 @@
             }
             if (!this.box) return;
             // render all buttons
-            var html = '<div class="w2ui-scroll-wrapper" onmousedown="var el=w2ui[\''+ this.name +'\']; if (el) el.resize();">'+
-                       '<table cellspacing="0" cellpadding="0" width="100%"><tbody>'+
-                       '<tr>';
-            for (var i = 0; i < this.items.length; i++) {
-                var it = this.items[i];
-                if (it == null)  continue;
-                if (it.id == null) it.id = "item_" + i;
-                if (it.caption != null) {
-                    console.log('NOTICE: toolbar item.caption property is deprecated, please use item.text. Item -> ', it)
+            var html;
+            if (this.overflowIntoNextRow) {
+                html = '';
+                for (var i = 0; i < this.items.length; i++) {
+                    this.beforeRender(this.items[i]);
                 }
-                if (it.hint != null) {
-                    console.log('NOTICE: toolbar item.hint property is deprecated, please use item.tooltip. Item -> ', it)
-                }
-                if (it.type == 'spacer') {
-                    html += '<td width="100%" id="tb_'+ this.name +'_item_'+ it.id +'" align="right"></td>';
+            }
+            else {
+                html = '<div class="w2ui-scroll-wrapper" onmousedown="var el=w2ui[\'' + this.name + '\']; if (el) el.resize();">' +
+                           '<table cellspacing="0" cellpadding="0" width="100%"><tbody>'+
+                           '<tr>';
+                for (var i = 0; i < this.items.length; i++) {
+                    var it = this.items[i];
+                    if (it == null)  continue;
+                    this.beforeRender(it);
+                    if (it.type == 'spacer') {
+                        html += '<td width="100%" id="' + getItemId(it) +'" align="right"></td>';
                 } else if (it.type == 'new-line') {
                     html += '<td width="100%"></td></tr></tbody></table>'
                          + '<div class="w2ui-toolbar-new-line"></div>'
                          + '<table cellspacing="0" cellpadding="0" width="100%"><tbody><tr>';
 
-                } else {
-                    html += '<td id="tb_'+ this.name + '_item_'+ it.id +'" style="'+ (it.hidden ? 'display: none' : '') +'" '+
-                            '    class="'+ (it.disabled ? 'disabled' : '') +'" valign="middle">'+
-                            '</td>';
+                    } else {
+                        html += '<td id="' + this.getElementId(it) +'"'+ (it.hidden ? ' style="display: none"' : '') +' '+
+                                '    class="'+ (it.disabled ? 'disabled' : '') +'" valign="middle">'+
+                                '</td>';
+                    }
                 }
+                html += '<td width="100%" id="tb_'+ this.name +'_right" align="right">'+ this.right +'</td>';
+                html += '</tr>'+
+                        '</tbody></table></div>'+
+                        '<div class="w2ui-scroll-left" onclick="var el=w2ui[\''+ this.name +'\']; if (el) el.scroll(\'left\');"></div>'+
+                        '<div class="w2ui-scroll-right" onclick="var el=w2ui[\''+ this.name +'\']; if (el) el.scroll(\'right\');"></div>';
             }
-            html += '<td width="100%" id="tb_'+ this.name +'_right" align="right">'+ this.right +'</td>';
-            html += '</tr>'+
-                    '</tbody></table></div>'+
-                    '<div class="w2ui-scroll-left" onclick="var el=w2ui[\''+ this.name +'\']; if (el) el.scroll(\'left\');"></div>'+
-                    '<div class="w2ui-scroll-right" onclick="var el=w2ui[\''+ this.name +'\']; if (el) el.scroll(\'right\');"></div>';
             $(this.box)
                 .attr('name', this.name)
-                .addClass('w2ui-reset w2ui-toolbar')
+                .addClass('w2ui-reset w2ui-toolbar' + (this.overflowIntoNextRow ? ' multi-row' : ''))
                 .html(html);
             if ($(this.box).length > 0) $(this.box)[0].style.cssText += this.style;
             // refresh all
@@ -574,7 +590,7 @@
             if (id == null) {
                 for (var i = 0; i < this.items.length; i++) {
                     var it1 = this.items[i];
-                    if (it1.id == null) it1.id = "item_" + i;
+                    if (it1.id == null) it1.id = i;
                     this.refresh(it1.id);
                 }
                 return;
@@ -586,25 +602,46 @@
                 var edata2 = this.trigger({ phase: 'before', type: 'refresh', target: id, item: it, object: it });
                 if (edata2.isCancelled === true) return;
             }
-            var el = $(this.box).find('#tb_'+ this.name +'_item_'+ w2utils.escapeId(it.id));
+            var el = $(this.box).find('#' + this.getElementId(it));
             var html  = this.getItemHTML(it);
             // hide tooltip
             this.tooltipHide(id, {});
 
             if (el.length === 0) {
                 // does not exist - create it
-                if (it.type == 'spacer') {
-                    html = '<td width="100%" id="' + this.getFullItemId(it.id) +'" align="right"></td>';
-                } else {
-                    html = '<td id="' + this.getFullItemId(it.id) + '" style="'+ (it.hidden ? 'display: none' : '') +'" '+
-                        '    class="'+ (it.disabled ? 'disabled' : '') +'" valign="middle">'+ html +
-                        '</td>';
+                var attribs = (it.hidden ? ' style="display: none"' : '') + (it.disabled ? ' class="disabled"' : '');
+                if (this.overflowIntoNextRow) {
+                    if (it.type == 'spacer') {
+                        html = '<div class="spacer" id="' + this.getElementId(it) + '"</div>';
+                    }
+                    else {
+                        html = '<div id="' + this.getElementId(it) + '"' + attribs + '>' + html + '</div>';
+                    }
+                    var prevElement = null;
+                    for (var i = parseInt(this.get(id, true)); i > 0;) {
+                        i--;
+                        prevElement = $('#' + this.getElementId(this.items[i]));
+                        if (prevElement.length > 0)
+                            break;
+                    }
+
+                    if (prevElement == null || prevElement.length == 0)
+                        $(this.box).append(html);
+                    else
+                        prevElement.after(html);
                 }
-                var itemIdx = this.get(id, true);
-                if (itemIdx == this.items.length-1) {
-                    $(this.box).find('#tb_'+ this.name +'_right').before(html);
-                } else {
-                    $(this.box).find('#' + this.getFullItemId(this.items[parseInt(itemIdx) + 1].id)).before(html);
+                else {
+                    if (it.type == 'spacer') {
+                        html = '<td width="100%" id="' + this.getElementId(it) +'" align="right"></td>';
+                    } else {
+                        html = '<td id="' + this.getElementId(it) + '"' + attribs + ' valign="middle">' + html + '</td>';
+                    }
+                    var itemIdx = this.get(id, true);
+                    if (itemIdx == this.items.length - 1) {
+                        $(this.box).find('#tb_' + this.name + '_right').before(html);
+                    } else {
+                        $(this.box).find('#' + this.getElementId(this.items[parseInt(itemIdx) + 1])).before(html);
+                    }
                 }
             } else {
                 if (['menu', 'menu-radio', 'menu-check', 'drop', 'color', 'text-color'].indexOf(it.type) != -1) {
@@ -766,7 +803,7 @@
 
         tooltipShow: function (id, event, forceRefresh) {
             if (this.tooltip == null) return;
-            var $el  = $(this.box).find('#tb_'+ this.name + '_item_'+ w2utils.escapeId(id));
+            var $el  = $(this.box).find('#' + this.getElementId(id, true));
             var item = this.get(id);
             var pos  = this.tooltip;
             var txt  = item.tooltip;
@@ -788,7 +825,7 @@
 
         tooltipHide: function (id, event) {
             if (this.tooltip == null) return;
-            var $el  = $(this.box).find('#tb_'+ this.name + '_item_'+ w2utils.escapeId(id));
+            var $el  = $(this.box).find('#' + this.getElementId(id, true));
             var item = this.get(id);
             clearTimeout(this._tooltipTimer);
             setTimeout(function () {
