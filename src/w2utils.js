@@ -1558,6 +1558,11 @@ var w2utils = (function ($) {
         return tmp.scrollBarSize;
     }
 
+    /**
+     * Validates the "name" property of params.
+     * @param {any} params
+     * @param {any} component Type name of a w2ui component.
+     */
     function checkName (params, component) { // was w2checkNameParam
         if (!params || params.name == null) {
             console.log('ERROR: The parameter "name" is required but not supplied in $().'+ component +'().');
