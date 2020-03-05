@@ -263,10 +263,7 @@
         // init toolbar
         this.initToolbar();
         this.updateToolbar();
-        // render if necessary
-        if ($(this).length !== 0) {
-            this.render($(this)[0]);
-        }
+
         // register new object
         w2ui[this.name] = this;
     }
@@ -279,10 +276,12 @@
     // ====================================================
     // -- Registers as a jQuery plugin
 
-    $.fn.w2grid = function(options) {
+    $.fn.w2grid = function (options) {
+        // Assuming that this jQuery object contains only one element or no elements.
         if ($.isPlainObject(options)) {
+            var object;
             try {
-                return new w2grid(options);
+                object = new w2grid(options);
             } catch (e) {
                 if (e instanceof MinorError) {
                     if (e.message) {
@@ -296,9 +295,14 @@
                     throw e;
                 }
             }
+            // render if necessary
+            if (this.length !== 0) {
+                object.render(this[0]);
+            }
+            return object;
         } else {
             // Call from grid element?
-            var obj = w2ui[$(this).attr('name')];
+            var obj = w2ui[this.attr('name')];
             if (!obj) return null;
             if (arguments.length > 0) {
                 // options is method
