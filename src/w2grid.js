@@ -403,6 +403,32 @@
             info            : null    // info bubble, can be bool/object
         },
 
+        firstColumnsId: function () {
+            return 'grid_' + this.name + '_fcolumns';
+        },
+        firstRecordsId: function () {
+            return 'grid_' + this.name + '_frecords';
+        },
+        firstScrollId: function () {
+            return 'grid_' + this.name + '_scroll1';
+        },
+        columnsId: function () {
+            return 'grid_' + this.name +'_columns';
+        },
+        recordsId: function () {
+            return 'grid_' + this.name + '_records';
+        },
+        // Фиксированные колонки справа.
+        lastColumnsId: function () {
+            return 'grid_' + this.name + '_lcolumns';
+        },
+        lastRecordsId: function () {
+            return 'grid_' + this.name + '_lrecords';
+        },
+        lastScrollId: function () {
+            return 'grid_' + this.name + '_lscroll';
+        },
+
         msgDelete       : 'Are you sure you want to delete NN records?',
         msgDeleteBtn    : 'Delete',
         msgNotJSON      : 'Returned data is not in valid JSON format.',
@@ -4692,23 +4718,30 @@
             var recHTML  = this.getRecordsHTML();
             var colHTML  = this.getColumnsHTML();
             var bodyHTML =
-                '<div id="grid_'+ this.name +'_frecords" class="w2ui-grid-frecords" style="margin-bottom: '+ (w2utils.scrollBarSize() - 1) +'px;">'+
+                '<div id="' + this.firstRecordsId() + '" class="w2ui-grid-frecords" style="margin-bottom: '+ (w2utils.scrollBarSize() - 1) +'px;">'+
                     recHTML[0] +
                 '</div>'+
-                '<div id="grid_'+ this.name +'_records" class="w2ui-grid-records" onscroll="w2ui[\''+ this.name +'\'].scroll(event);">' +
+                '<div id="' + this.recordsId() + '" class="w2ui-grid-records" onscroll="w2ui[\''+ this.name +'\'].scroll(event);">' +
                     recHTML[1] +
                 '</div>'+
-                '<div id="grid_'+ this.name +'_scroll1" class="w2ui-grid-scroll1" style="height: '+ w2utils.scrollBarSize() +'px"></div>'+
+                '<div id="' + this.lastRecordsId() + '" class="w2ui-grid-frecords right" style="margin-bottom: ' + (w2utils.scrollBarSize() - 1) + 'px;">' +
+                    recHTML[0] +
+                '</div>' +
+                '<div id="' + this.firstScrollId() + '" class="w2ui-grid-scroll1" style="height: ' + w2utils.scrollBarSize() + 'px"></div>' +
+                '<div id="' + this.lastScrollId() + '" class="w2ui-grid-scroll1 right" style="height: ' + w2utils.scrollBarSize() + 'px"></div>' +
                 // Columns need to be after to be able to overlap
-                '<div id="grid_'+ this.name +'_fcolumns" class="w2ui-grid-fcolumns">'+
+                '<div id="' + this.firstColumnsId() + '" class="w2ui-grid-fcolumns">'+
                 '    <table><tbody>'+ colHTML[0] +'</tbody></table>'+
                 '</div>'+
-                '<div id="grid_'+ this.name +'_columns" class="w2ui-grid-columns">'+
+                '<div id="' + this.columnsId() + '" class="w2ui-grid-columns">'+
                 '    <table><tbody>'+ colHTML[1] +'</tbody></table>'+
+                '</div>' +
+                '<div id="' + this.lastColumnsId() + '" class="w2ui-grid-fcolumns right">' +
+                '    <table><tbody>' + colHTML[0] + '</tbody></table>' +
                 '</div>';
 
             var gridBody = $('#grid_'+ this.name +'_body', obj.box).html(bodyHTML),
-                records = $('#grid_'+ this.name +'_records', obj.box);
+                records = $('#' + this.recordsId(), obj.box);
             // enable scrolling on frozen records,
             gridBody.data('scrolldata', { lastTime: 0, lastDelta: 0, time: 0 })
                 .find('.w2ui-grid-frecords')
