@@ -155,7 +155,14 @@
 ************************************************************************/
 
 (function ($) {
-    var w2grid = function(options) {
+    /**
+     * Constructor.
+     * @param {any} options Object extension.
+     */
+    var w2grid = function (options) {
+        // check name parameter
+        if (!w2utils.checkName(options, 'w2grid'))
+            throw new MinorError();
 
         // public properties
         this.name         = null;
@@ -203,6 +210,7 @@
             edit_col    : null,
             isSafari    : (/^((?!chrome|android).)*safari/i).test(navigator.userAgent)
         }
+        // Extending with itself to bring all inherited properties (from prototype) to the surface?
         $.extend(true, this, w2obj.grid);
         this.show             = $.extend(true, {}, w2grid.prototype.show);
         this.postData         = $.extend(true, {}, w2grid.prototype.postData);
@@ -213,71 +221,92 @@
         this.stateColProps    = $.extend(true, {}, w2grid.prototype.stateColProps);
         this.stateColDefaults = $.extend(true, {}, w2grid.prototype.stateColDefaults);
         $.extend(true, this, options);
+
+        // remember items
+        var columns      = options.columns;
+        var columnGroups = options.columnGroups;
+        var records      = options.records;
+        var searches     = options.searches;
+        var searchData   = options.searchData;
+        var sortData     = options.sortData;
+        // extend items
+        $.extend(this, { records: [], columns: [], searches: [], sortData: [], searchData: [], handlers: [] });
+
+        // reassign variables
+        var p;
+        if (columns)      for (p = 0; p < columns.length; p++)      this.columns[p]       = $.extend(true, {}, columns[p]);
+        if (columnGroups) for (p = 0; p < columnGroups.length; p++) this.columnGroups[p]  = $.extend(true, {}, columnGroups[p]);
+        if (searches)     for (p = 0; p < searches.length; p++)     this.searches[p]      = $.extend(true, {}, searches[p]);
+        if (searchData)   for (p = 0; p < searchData.length; p++)   this.searchData[p]    = $.extend(true, {}, searchData[p]);
+        if (sortData)     for (p = 0; p < sortData.length; p++)     this.sortData[p]      = $.extend(true, {}, sortData[p]);
+
+        // check if there are records without recid
+        if (records) for (var r = 0; r < records.length; r++) {
+            if (records[r].recid == null && records[r][this.recid] == null) {
+                throw new MinorError('Cannot add records without recid.');
+            }
+            this.records[r] = $.extend(true, {}, records[r]);
+        }
+        // add searches
+        for (var i = 0; i < this.columns.length; i++) {
+            var col = this.columns[i];
+            var search = col.searchable;
+            if (search == null || search === false || this.getSearch(col.field) != null) continue;
+            if ($.isPlainObject(search)) {
+                this.addSearch($.extend({ field: col.field, label: col.text, type: 'text' }, search));
+            } else {
+                var stype = col.searchable, attr = '';
+                if (col.searchable === true) { stype = 'text'; attr = 'size="20"'; }
+                this.addSearch({ field: col.field, label: col.text, type: stype, attr: attr });
+            }
+        }
+        // init toolbar
+        this.initToolbar();
+        this.updateToolbar();
+
+        // register new object
+        w2ui[this.name] = this;
+    }
+
+    function MinorError(message) {
+        /** Can be null. */
+        this.message = message;
     }
 
     // ====================================================
     // -- Registers as a jQuery plugin
 
-    $.fn.w2grid = function(method) {
-        if ($.isPlainObject(method)) {
-            // check name parameter
-            if (!w2utils.checkName(method, 'w2grid')) return;
-            // remember items
-            var columns      = method.columns;
-            var columnGroups = method.columnGroups;
-            var records      = method.records;
-            var searches     = method.searches;
-            var searchData   = method.searchData;
-            var sortData     = method.sortData;
-            // extend items
-            var object = new w2grid(method);
-            $.extend(object, { records: [], columns: [], searches: [], sortData: [], searchData: [], handlers: [] });
-
-            // reassign variables
-            var p;
-            if (columns)      for (p = 0; p < columns.length; p++)      object.columns[p]       = $.extend(true, {}, columns[p]);
-            if (columnGroups) for (p = 0; p < columnGroups.length; p++) object.columnGroups[p]  = $.extend(true, {}, columnGroups[p]);
-            if (searches)     for (p = 0; p < searches.length; p++)     object.searches[p]      = $.extend(true, {}, searches[p]);
-            if (searchData)   for (p = 0; p < searchData.length; p++)   object.searchData[p]    = $.extend(true, {}, searchData[p]);
-            if (sortData)     for (p = 0; p < sortData.length; p++)     object.sortData[p]      = $.extend(true, {}, sortData[p]);
-
-            // check if there are records without recid
-            if (records) for (var r = 0; r < records.length; r++) {
-                if (records[r].recid == null && records[r][object.recid] == null) {
-                    console.log('ERROR: Cannot add records without recid. (obj: '+ object.name +')');
+    $.fn.w2grid = function (options) {
+        // Assuming that this jQuery object contains only one element or no elements.
+        if ($.isPlainObject(options)) {
+            var object;
+            try {
+                object = new w2grid(options);
+            } catch (e) {
+                if (e instanceof MinorError) {
+                    if (e.message) {
+                        var msg = 'ERROR: ' + e.message;
+                        if (options.name) msg += ' (obj: ' + options.name + ')';
+                        console.log(msg);
+                    }
                     return;
                 }
-                object.records[r] = $.extend(true, {}, records[r]);
-            }
-            // add searches
-            for (var i = 0; i < object.columns.length; i++) {
-                var col = object.columns[i];
-                var search = col.searchable;
-                if (search == null || search === false || object.getSearch(col.field) != null) continue;
-                if ($.isPlainObject(search)) {
-                    object.addSearch($.extend({ field: col.field, label: col.text, type: 'text' }, search));
-                } else {
-                    var stype = col.searchable, attr  = '';
-                    if (col.searchable === true) { stype = 'text'; attr = 'size="20"'; }
-                    object.addSearch({ field: col.field, label: col.text, type: stype, attr: attr });
+                else {
+                    throw e;
                 }
             }
-            // init toolbar
-            object.initToolbar();
-            object.updateToolbar();
             // render if necessary
-            if ($(this).length !== 0) {
-                object.render($(this)[0]);
+            if (this.length !== 0) {
+                object.render(this[0]);
             }
-            // register new object
-            w2ui[object.name] = object;
             return object;
-
         } else {
-            var obj = w2ui[$(this).attr('name')];
+            // Call from grid element?
+            var obj = w2ui[this.attr('name')];
             if (!obj) return null;
             if (arguments.length > 0) {
-                if (obj[method]) obj[method].apply(obj, Array.prototype.slice.call(arguments, 1));
+                // options is method
+                if (obj[options]) obj[options].apply(obj, Array.prototype.slice.call(arguments, 1));
                 return this;
             } else {
                 return obj;
