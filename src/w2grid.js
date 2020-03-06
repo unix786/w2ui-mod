@@ -156,8 +156,8 @@
 
 (function ($) {
     /**
-     * Constructor.
-     * @param {any} options Object extension.
+     * Constructor. Repeated calls throw exceptions due to duplicate name.
+     * @param {any} options Extends the object.
      */
     var w2grid = function (options) {
         // check name parameter
@@ -301,14 +301,14 @@
             }
             return object;
         } else {
-            // Call from grid element?
             var obj = w2ui[this.attr('name')];
             if (!obj) return null;
             if (arguments.length > 0) {
-                // options is method
+                // Assuming options is a name of a method. Any additional arguments are passed down.
                 if (obj[options]) obj[options].apply(obj, Array.prototype.slice.call(arguments, 1));
                 return this;
             } else {
+                // w2grid object retrieval through the jQuery object.
                 return obj;
             }
         }
@@ -1960,6 +1960,11 @@
             return 'grid_' + this.name + '_field_' + i + (isSecondValue ? 'B' : '');
         },
 
+        /**
+         * http://w2ui.com/web/docs/1.5/w2grid.search
+         * @param {any} field
+         * @param {any} value
+         */
         search: function (field, value) {
             var grid        = this;
             var url         = (typeof this.url != 'object' ? this.url : this.url.get);
