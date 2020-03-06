@@ -1,5 +1,7 @@
-var w2ui  = w2ui  || {};
-var w2obj = w2obj || {}; // expose object to be able to overwrite default functions
+/**Container for all w2ui widget instances. */
+var w2ui = w2ui || {};
+/**Exposes w2ui widget constructors (grid, etc.) to be able to overwrite default functions. */
+var w2obj = w2obj || {};
 
 /************************************************
 *  Library: Web 2.0 UI for jQuery
@@ -50,9 +52,13 @@ var w2obj = w2obj || {}; // expose object to be able to overwrite default functi
 *
 ************************************************/
 
+/**Basic w2ui utilities. */
 var w2utils = (function ($) {
-    var tmp = {}; // for some temp variables
-    var obj = {
+    /**Internal variables*/
+    var tmp = {};
+
+    // Exposing only a subset of methods and properties.
+    return {
         version  : '1.5.x',
         settings : {
             "locale"            : "en-us",
@@ -144,9 +150,275 @@ var w2utils = (function ($) {
                  ? true : false),
         isIE : ((navigator.userAgent.toLowerCase().indexOf('msie') !== -1 ||
                  navigator.userAgent.toLowerCase().indexOf('trident') !== -1 )
-                 ? true : false)
+                 ? true : false),
+
+/***********************************************************
+*  Formatters object
+*  --- Primariy used in grid
+*
+*********************************************************/
+
+formatters: {
+
+    'number': function (value, params) {
+        if (parseInt(params) > 20) params = 20;
+        if (parseInt(params) < 0) params = 0;
+        if (value == null || value === '') return '';
+        return w2utils.formatNumber(parseFloat(value), params, true);
+    },
+
+    'float': function (value, params) {
+        return w2utils.formatters['number'](value, params);
+    },
+
+    'int': function (value, params) {
+        return w2utils.formatters['number'](value, 0);
+    },
+
+    'money': function (value, params) {
+        if (value == null || value === '') return '';
+        var data = w2utils.formatNumber(Number(value), w2utils.settings.currencyPrecision || 2);
+        return (w2utils.settings.currencyPrefix || '') + data + (w2utils.settings.currencySuffix || '');
+    },
+
+    'currency': function (value, params) {
+        return w2utils.formatters['money'](value, params);
+    },
+
+    'percent': function (value, params) {
+        if (value == null || value === '') return '';
+        return w2utils.formatNumber(value, params || 1) + '%';
+    },
+
+    'size': function (value, params) {
+        if (value == null || value === '') return '';
+        return w2utils.formatSize(parseInt(value));
+    },
+
+    'date': function (value, params) {
+        if (params === '') params = w2utils.settings.dateFormat;
+        if (value == null || value === 0 || value === '') return '';
+        var dt = w2utils.isDateTime(value, params, true);
+        if (dt === false) dt = w2utils.isDate(value, params, true);
+        return '<span title="'+ dt +'">' + w2utils.formatDate(dt, params) + '</span>';
+    },
+
+    'datetime': function (value, params) {
+        if (params === '') params = w2utils.settings.datetimeFormat;
+        if (value == null || value === 0 || value === '') return '';
+        var dt = w2utils.isDateTime(value, params, true);
+        if (dt === false) dt = w2utils.isDate(value, params, true);
+        return '<span title="'+ dt +'">' + w2utils.formatDateTime(dt, params) + '</span>';
+    },
+
+    'time': function (value, params) {
+        if (params === '') params = w2utils.settings.timeFormat;
+        if (params === 'h12') params = 'hh:mi pm';
+        if (params === 'h24') params = 'h24:mi';
+        if (value == null || value === 0 || value === '') return '';
+        var dt = w2utils.isDateTime(value, params, true);
+        if (dt === false) dt = w2utils.isDate(value, params, true);
+        return '<span title="'+ dt +'">' + w2utils.formatTime(value, params) + '</span>';
+    },
+
+    'timestamp': function (value, params) {
+        if (params === '') params = w2utils.settings.datetimeFormat;
+        if (value == null || value === 0 || value === '') return '';
+        var dt = w2utils.isDateTime(value, params, true);
+        if (dt === false) dt = w2utils.isDate(value, params, true);
+        return dt.toString ? dt.toString() : '';
+    },
+
+    'gmt': function (value, params) {
+        if (params === '') params = w2utils.settings.datetimeFormat;
+        if (value == null || value === 0 || value === '') return '';
+        var dt = w2utils.isDateTime(value, params, true);
+        if (dt === false) dt = w2utils.isDate(value, params, true);
+        return dt.toUTCString ? dt.toUTCString() : '';
+    },
+
+    'age': function (value, params) {
+        if (value == null || value === 0 || value === '') return '';
+        var dt = w2utils.isDateTime(value, null, true);
+        if (dt === false) dt = w2utils.isDate(value, null, true);
+        return '<span title="'+ dt +'">' + w2utils.age(value) + (params ? (' ' + params) : '') + '</span>';
+    },
+
+    'interval': function (value, params) {
+        if (value == null || value === 0 || value === '') return '';
+        return w2utils.interval(value) + (params ? (' ' + params) : '');
+    },
+
+    'toggle': function (value, params) {
+        return (value ? 'Yes' : '');
+    },
+
+    'password': function (value, params) {
+        var ret = "";
+        for (var i=0; i < value.length; i++) {
+            ret += "*";
+        }
+        return ret;
+    }
+},
+
+/***********************************************************
+*  Generic Event Object
+*  --- This object is reused across all other
+*  --- widgets in w2ui.
+*
+*********************************************************/
+
+event: {
+
+    on: function (edata, handler) {
+        var $ = jQuery;
+        var scope;
+        // allow 'eventName.scope' syntax
+        if (typeof edata === 'string' && edata.indexOf('.') !== -1) {
+            var tmp = edata.split('.');
+            edata = tmp[0];
+            scope = tmp[1];
+        }
+        // allow 'eventName:after' syntax
+        if (typeof edata === 'string' && edata.indexOf(':') !== -1) {
+            var tmp = edata.split(':');
+            if (['complete', 'done'].indexOf(edata[1]) !== -1) edata[1] = 'after';
+            edata = {
+                type    : tmp[0],
+                execute : tmp[1]
+            };
+            if (scope) edata.scope = scope
+        }
+        if (!$.isPlainObject(edata)) edata = { type: edata, scope: scope };
+        edata = $.extend({ type: null, execute: 'before', target: null, onComplete: null }, edata);
+        // errors
+        if (!edata.type) { console.log('ERROR: You must specify event type when calling .on() method of '+ this.name); return; }
+        if (!handler) { console.log('ERROR: You must specify event handler function when calling .on() method of '+ this.name); return; }
+        if (!$.isArray(this.handlers)) this.handlers = [];
+        this.handlers.push({ edata: edata, handler: handler });
+        return this; // needed for chaining
+    },
+
+    off: function (edata, handler) {
+        var $ = jQuery;
+        var scope;
+        // allow 'eventName.scope' syntax
+        if (typeof edata === 'string' && edata.indexOf('.') !== -1) {
+            var tmp = edata.split('.');
+            edata = tmp[0];
+            scope = tmp[1];
+            if (edata === '') edata = '*'
+        }
+        // allow 'eventName:after' syntax
+        if (typeof edata === 'string' && edata.indexOf(':') !== -1) {
+            var tmp = edata.split(':');
+            if (['complete', 'done'].indexOf(edata[1]) !== -1) edata[1] = 'after';
+            edata = {
+                type    : tmp[0],
+                execute : tmp[1]
+            };
+        }
+        if (!$.isPlainObject(edata)) edata = { type: edata };
+        edata = $.extend({}, { type: null, execute: null, target: null, onComplete: null }, edata);
+        // errors
+        if (!edata.type && !scope) { console.log('ERROR: You must specify event type when calling .off() method of '+ this.name); return; }
+        if (!handler) { handler = null; }
+        // remove handlers
+        var newHandlers = [];
+        for (var h = 0, len = this.handlers.length; h < len; h++) {
+            var t = this.handlers[h];
+            if ((t.edata.type === edata.type || edata.type === '*' || (t.edata.scope != null && edata.type == '')) &&
+                (t.edata.target === edata.target || edata.target == null) &&
+                (t.edata.execute === edata.execute || edata.execute == null) &&
+                ((t.handler === handler && handler != null) || (scope != null && t.edata.scope == scope)))
+            {
+                // match
+            } else {
+                newHandlers.push(t);
+            }
+        }
+        this.handlers = newHandlers;
+        return this;
+    },
+
+    trigger: function (edata) {
+        var $ = jQuery;
+        var edata = $.extend({ type: null, phase: 'before', target: null, doneHandlers: [] }, edata, {
+            isStopped       : false,
+            isCancelled     : false,
+            done            : function (handler) { this.doneHandlers.push(handler); },
+            preventDefault  : function () { this.isCancelled = true; },
+            stopPropagation : function () { this.isStopped   = true; }
+        });
+        if (edata.phase === 'before') edata.onComplete = null;
+        var args, fun, tmp;
+        if (edata.target == null) edata.target = null;
+        if (!$.isArray(this.handlers)) this.handlers = [];
+        // process events in REVERSE order
+        for (var h = this.handlers.length-1; h >= 0; h--) {
+            var item = this.handlers[h];
+            if (item != null && (item.edata.type === edata.type || item.edata.type === '*') &&
+                (item.edata.target === edata.target || item.edata.target == null) &&
+                (item.edata.execute === edata.phase || item.edata.execute === '*' || item.edata.phase === '*'))
+            {
+                edata = $.extend({}, item.edata, edata);
+                // check handler arguments
+                args = [];
+                tmp  = new RegExp(/\((.*?)\)/).exec(item.handler);
+                if (tmp) args = tmp[1].split(/\s*,\s*/);
+                if (args.length === 2) {
+                    item.handler.call(this, edata.target, edata); // old way for back compatibility
+                } else {
+                    item.handler.call(this, edata); // new way
+                }
+                if (edata.isStopped === true || edata.stop === true) return edata; // back compatibility edata.stop === true
+            }
+        }
+        // main object events
+        var funName = 'on' + edata.type.substr(0,1).toUpperCase() + edata.type.substr(1);
+        if (edata.phase === 'before' && typeof this[funName] === 'function') {
+            fun = this[funName];
+            // check handler arguments
+            args = [];
+            tmp  = new RegExp(/\((.*?)\)/).exec(fun);
+            if (tmp) args = tmp[1].split(/\s*,\s*/);
+            if (args.length === 2) {
+                fun.call(this, edata.target, edata); // old way for back compatibility
+            } else {
+                fun.call(this, edata); // new way
+            }
+            if (edata.isStopped === true || edata.stop === true) return edata; // back compatibility edata.stop === true
+        }
+        // item object events
+        if (edata.object != null && edata.phase === 'before' &&
+            typeof edata.object[funName] === 'function')
+        {
+            fun = edata.object[funName];
+            // check handler arguments
+            args = [];
+            tmp  = new RegExp(/\((.*?)\)/).exec(fun);
+            if (tmp) args = tmp[1].split(/\s*,\s*/);
+            if (args.length === 2) {
+                fun.call(this, edata.target, edata); // old way for back compatibility
+            } else {
+                fun.call(this, edata); // new way
+            }
+            if (edata.isStopped === true || edata.stop === true) return edata;
+        }
+        // execute onComplete
+        if (edata.phase === 'after') {
+            if (typeof edata.onComplete === 'function') edata.onComplete.call(this, edata);
+            for (var i = 0; i < edata.doneHandlers.length; i++) {
+                if (typeof edata.doneHandlers[i] === 'function') {
+                    edata.doneHandlers[i].call(this, edata);
+                }
+            }
+        }
+        return edata;
+    }
+}
     };
-    return obj;
 
     function isBin (val) {
         var re = /^[0-1]+$/;
@@ -1507,7 +1779,7 @@ var w2utils = (function ($) {
      * @param {any} fallbackPhrase Alternative (may also be localized). If null, will return null. If undefined, will return phrase argument.
      */
     function lang (phrase, fallbackPhrase) {
-        var translation = this.settings.phrases[phrase];
+        var translation = this.settings.phrases[phrase]; // Referring to "this" may cause an error if this function gets called from the surrounding scope.
         if (translation == null) {
             if (fallbackPhrase) return this.lang(fallbackPhrase);
             else if (fallbackPhrase === null) return null;
@@ -1909,273 +2181,6 @@ var w2utils = (function ($) {
         return w2ui[jQuery(asElement(obj)).parents('div.w2ui-grid').attr('name')];
     }
 })(jQuery);
-
-/***********************************************************
-*  Formatters object
-*  --- Primariy used in grid
-*
-*********************************************************/
-
-w2utils.formatters = {
-
-    'number': function (value, params) {
-        if (parseInt(params) > 20) params = 20;
-        if (parseInt(params) < 0) params = 0;
-        if (value == null || value === '') return '';
-        return w2utils.formatNumber(parseFloat(value), params, true);
-    },
-
-    'float': function (value, params) {
-        return w2utils.formatters['number'](value, params);
-    },
-
-    'int': function (value, params) {
-        return w2utils.formatters['number'](value, 0);
-    },
-
-    'money': function (value, params) {
-        if (value == null || value === '') return '';
-        var data = w2utils.formatNumber(Number(value), w2utils.settings.currencyPrecision || 2);
-        return (w2utils.settings.currencyPrefix || '') + data + (w2utils.settings.currencySuffix || '');
-    },
-
-    'currency': function (value, params) {
-        return w2utils.formatters['money'](value, params);
-    },
-
-    'percent': function (value, params) {
-        if (value == null || value === '') return '';
-        return w2utils.formatNumber(value, params || 1) + '%';
-    },
-
-    'size': function (value, params) {
-        if (value == null || value === '') return '';
-        return w2utils.formatSize(parseInt(value));
-    },
-
-    'date': function (value, params) {
-        if (params === '') params = w2utils.settings.dateFormat;
-        if (value == null || value === 0 || value === '') return '';
-        var dt = w2utils.isDateTime(value, params, true);
-        if (dt === false) dt = w2utils.isDate(value, params, true);
-        return '<span title="'+ dt +'">' + w2utils.formatDate(dt, params) + '</span>';
-    },
-
-    'datetime': function (value, params) {
-        if (params === '') params = w2utils.settings.datetimeFormat;
-        if (value == null || value === 0 || value === '') return '';
-        var dt = w2utils.isDateTime(value, params, true);
-        if (dt === false) dt = w2utils.isDate(value, params, true);
-        return '<span title="'+ dt +'">' + w2utils.formatDateTime(dt, params) + '</span>';
-    },
-
-    'time': function (value, params) {
-        if (params === '') params = w2utils.settings.timeFormat;
-        if (params === 'h12') params = 'hh:mi pm';
-        if (params === 'h24') params = 'h24:mi';
-        if (value == null || value === 0 || value === '') return '';
-        var dt = w2utils.isDateTime(value, params, true);
-        if (dt === false) dt = w2utils.isDate(value, params, true);
-        return '<span title="'+ dt +'">' + w2utils.formatTime(value, params) + '</span>';
-    },
-
-    'timestamp': function (value, params) {
-        if (params === '') params = w2utils.settings.datetimeFormat;
-        if (value == null || value === 0 || value === '') return '';
-        var dt = w2utils.isDateTime(value, params, true);
-        if (dt === false) dt = w2utils.isDate(value, params, true);
-        return dt.toString ? dt.toString() : '';
-    },
-
-    'gmt': function (value, params) {
-        if (params === '') params = w2utils.settings.datetimeFormat;
-        if (value == null || value === 0 || value === '') return '';
-        var dt = w2utils.isDateTime(value, params, true);
-        if (dt === false) dt = w2utils.isDate(value, params, true);
-        return dt.toUTCString ? dt.toUTCString() : '';
-    },
-
-    'age': function (value, params) {
-        if (value == null || value === 0 || value === '') return '';
-        var dt = w2utils.isDateTime(value, null, true);
-        if (dt === false) dt = w2utils.isDate(value, null, true);
-        return '<span title="'+ dt +'">' + w2utils.age(value) + (params ? (' ' + params) : '') + '</span>';
-    },
-
-    'interval': function (value, params) {
-        if (value == null || value === 0 || value === '') return '';
-        return w2utils.interval(value) + (params ? (' ' + params) : '');
-    },
-
-    'toggle': function (value, params) {
-        return (value ? 'Yes' : '');
-    },
-
-    'password': function (value, params) {
-        var ret = "";
-        for (var i=0; i < value.length; i++) {
-            ret += "*";
-        }
-        return ret;
-    }
-};
-
-/***********************************************************
-*  Generic Event Object
-*  --- This object is reused across all other
-*  --- widgets in w2ui.
-*
-*********************************************************/
-
-w2utils.event = {
-
-    on: function (edata, handler) {
-        var $ = jQuery;
-        var scope;
-        // allow 'eventName.scope' syntax
-        if (typeof edata === 'string' && edata.indexOf('.') !== -1) {
-            var tmp = edata.split('.');
-            edata = tmp[0];
-            scope = tmp[1];
-        }
-        // allow 'eventName:after' syntax
-        if (typeof edata === 'string' && edata.indexOf(':') !== -1) {
-            var tmp = edata.split(':');
-            if (['complete', 'done'].indexOf(edata[1]) !== -1) edata[1] = 'after';
-            edata = {
-                type    : tmp[0],
-                execute : tmp[1]
-            };
-            if (scope) edata.scope = scope
-        }
-        if (!$.isPlainObject(edata)) edata = { type: edata, scope: scope };
-        edata = $.extend({ type: null, execute: 'before', target: null, onComplete: null }, edata);
-        // errors
-        if (!edata.type) { console.log('ERROR: You must specify event type when calling .on() method of '+ this.name); return; }
-        if (!handler) { console.log('ERROR: You must specify event handler function when calling .on() method of '+ this.name); return; }
-        if (!$.isArray(this.handlers)) this.handlers = [];
-        this.handlers.push({ edata: edata, handler: handler });
-        return this; // needed for chaining
-    },
-
-    off: function (edata, handler) {
-        var $ = jQuery;
-        var scope;
-        // allow 'eventName.scope' syntax
-        if (typeof edata === 'string' && edata.indexOf('.') !== -1) {
-            var tmp = edata.split('.');
-            edata = tmp[0];
-            scope = tmp[1];
-            if (edata === '') edata = '*'
-        }
-        // allow 'eventName:after' syntax
-        if (typeof edata === 'string' && edata.indexOf(':') !== -1) {
-            var tmp = edata.split(':');
-            if (['complete', 'done'].indexOf(edata[1]) !== -1) edata[1] = 'after';
-            edata = {
-                type    : tmp[0],
-                execute : tmp[1]
-            };
-        }
-        if (!$.isPlainObject(edata)) edata = { type: edata };
-        edata = $.extend({}, { type: null, execute: null, target: null, onComplete: null }, edata);
-        // errors
-        if (!edata.type && !scope) { console.log('ERROR: You must specify event type when calling .off() method of '+ this.name); return; }
-        if (!handler) { handler = null; }
-        // remove handlers
-        var newHandlers = [];
-        for (var h = 0, len = this.handlers.length; h < len; h++) {
-            var t = this.handlers[h];
-            if ((t.edata.type === edata.type || edata.type === '*' || (t.edata.scope != null && edata.type == '')) &&
-                (t.edata.target === edata.target || edata.target == null) &&
-                (t.edata.execute === edata.execute || edata.execute == null) &&
-                ((t.handler === handler && handler != null) || (scope != null && t.edata.scope == scope)))
-            {
-                // match
-            } else {
-                newHandlers.push(t);
-            }
-        }
-        this.handlers = newHandlers;
-        return this;
-    },
-
-    trigger: function (edata) {
-        var $ = jQuery;
-        var edata = $.extend({ type: null, phase: 'before', target: null, doneHandlers: [] }, edata, {
-            isStopped       : false,
-            isCancelled     : false,
-            done            : function (handler) { this.doneHandlers.push(handler); },
-            preventDefault  : function () { this.isCancelled = true; },
-            stopPropagation : function () { this.isStopped   = true; }
-        });
-        if (edata.phase === 'before') edata.onComplete = null;
-        var args, fun, tmp;
-        if (edata.target == null) edata.target = null;
-        if (!$.isArray(this.handlers)) this.handlers = [];
-        // process events in REVERSE order
-        for (var h = this.handlers.length-1; h >= 0; h--) {
-            var item = this.handlers[h];
-            if (item != null && (item.edata.type === edata.type || item.edata.type === '*') &&
-                (item.edata.target === edata.target || item.edata.target == null) &&
-                (item.edata.execute === edata.phase || item.edata.execute === '*' || item.edata.phase === '*'))
-            {
-                edata = $.extend({}, item.edata, edata);
-                // check handler arguments
-                args = [];
-                tmp  = new RegExp(/\((.*?)\)/).exec(item.handler);
-                if (tmp) args = tmp[1].split(/\s*,\s*/);
-                if (args.length === 2) {
-                    item.handler.call(this, edata.target, edata); // old way for back compatibility
-                } else {
-                    item.handler.call(this, edata); // new way
-                }
-                if (edata.isStopped === true || edata.stop === true) return edata; // back compatibility edata.stop === true
-            }
-        }
-        // main object events
-        var funName = 'on' + edata.type.substr(0,1).toUpperCase() + edata.type.substr(1);
-        if (edata.phase === 'before' && typeof this[funName] === 'function') {
-            fun = this[funName];
-            // check handler arguments
-            args = [];
-            tmp  = new RegExp(/\((.*?)\)/).exec(fun);
-            if (tmp) args = tmp[1].split(/\s*,\s*/);
-            if (args.length === 2) {
-                fun.call(this, edata.target, edata); // old way for back compatibility
-            } else {
-                fun.call(this, edata); // new way
-            }
-            if (edata.isStopped === true || edata.stop === true) return edata; // back compatibility edata.stop === true
-        }
-        // item object events
-        if (edata.object != null && edata.phase === 'before' &&
-            typeof edata.object[funName] === 'function')
-        {
-            fun = edata.object[funName];
-            // check handler arguments
-            args = [];
-            tmp  = new RegExp(/\((.*?)\)/).exec(fun);
-            if (tmp) args = tmp[1].split(/\s*,\s*/);
-            if (args.length === 2) {
-                fun.call(this, edata.target, edata); // old way for back compatibility
-            } else {
-                fun.call(this, edata); // new way
-            }
-            if (edata.isStopped === true || edata.stop === true) return edata;
-        }
-        // execute onComplete
-        if (edata.phase === 'after') {
-            if (typeof edata.onComplete === 'function') edata.onComplete.call(this, edata);
-            for (var i = 0; i < edata.doneHandlers.length; i++) {
-                if (typeof edata.doneHandlers[i] === 'function') {
-                    edata.doneHandlers[i].call(this, edata);
-                }
-            }
-        }
-        return edata;
-    }
-};
 
 /***********************************************************
 *  Commonly used plugins
