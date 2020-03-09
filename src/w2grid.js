@@ -197,7 +197,7 @@
                 indexes : [],
                 columns : {}
             },
-            /**Indicates that searchData contains non-hidden searches.*/
+            /**Indicates that searchData contains non-hidden searches?*/
             multi       : false,
             scrollTop   : 0,
             scrollLeft  : 0,
@@ -330,6 +330,8 @@
          * http://w2ui.com/web/docs/1.5/w2grid.searchData
          */
         searchData   : [],
+        /** Fields defined in getQuickFind method. Can be null.*/
+        quickFind: null,
         /** Remaps searchData fields (changes one name to another) for data requests. */
         searchMap: null,
         sortData     : [],
@@ -2059,16 +2061,22 @@
 
         getQuickFind: function (field, value) {
             // if only one argument - search all
+            var isAll = false;
             if (arguments.length == 1) {
                 value = field;
                 field = 'all';
+                isAll = true;
+            }
+            else if (field.toLowerCase() == 'all') {
+                isAll = true;
             }
             var searchData;
             // loop through all searches and see if it applies
             if (value == null) {
                 searchData = null;
             } else {
-                if (field.toLowerCase() == 'all') {
+                searchData = [];
+                if (isAll) {
                     // if there are search fields loop thru them
                     if (this.searches.length > 0) {
                         for (var i = 0; i < this.searches.length; i++) {
@@ -2176,9 +2184,11 @@
                 }
             }
             return {
-                field: field,
+                /**Can be null if "all fields".*/
+                field: isAll ? null : field,
                 value: value,
-                searchData: searchData,
+                /** List of conditions (searchData items)*/
+                data: searchData,
             };
         },
 
@@ -2196,7 +2206,7 @@
             }
             // 2: search(field, value) - regular search
             if (typeof field == 'string') {
-                pendingQuickFind = this.getQuickFind();
+                pendingQuickFind = this.getQuickFind(field, value);
             }
             // 3: search([ { field, value, [operator,] [type] }, { field, value, [operator,] [type] } ], logic) - submit whole structure
             if ($.isArray(field)) {
@@ -2238,7 +2248,7 @@
             // default action
             this.quickFind = edata.quickFind;
             if (this.quickFind) {
-                this.last.field = this.quickFind.field;
+                this.last.field = this.quickFind.field || 'all';
                 this.last.search = this.quickFind.value;
             } else {
                 this.last.field = 'all';
@@ -2425,9 +2435,6 @@
         /**This has to determine whether calling searchReset() would change anything. */
         hasSearches: function () {
             var grid = this;
-            if (grid.last.multi || grid.last.search || grid.isSearchAllNotEmpty())
-                return true;
-
             // Check if searchData has non-hidden searches.
             return grid.searchData.some(function (item) {
                 var tmp = grid.getSearch(item.field);
@@ -2653,6 +2660,22 @@
             }
         },
 
+        /**
+         * Remaps properties "field" according to searchMap and creates a shallow copy of each item.
+         * @param {any} array
+         */
+        remapFields: function (array) {
+            function mapItem(item) {
+                item = $.extend({}, item);
+                if (this.searchMap) {
+                    var remapField = this.searchMap[item.field];
+                    if (remapField) item.field = remapField;
+                }
+                return item;
+            };
+            return array.map(mapItem.bind(this));
+        },
+
         request: function (cmd, add_params, url, callBack) {
             if (add_params == null) add_params = {};
             if (url == '' || url == null) url = this.url;
@@ -2666,16 +2689,8 @@
                 limit       : this.limit,
                 offset      : parseInt(this.offset) + parseInt(this.last.xhr_offset),
                 searchLogic : this.last.logic,
-                search: this.searchData.map(function (search) {
-                        var _search = $.extend({}, search);
-                        if (this.searchMap && this.searchMap[_search.field]) _search.field = this.searchMap[_search.field];
-                        return _search;
-                    }.bind(this)),
-                sort: this.sortData.map(function (sort) {
-                        var _sort = $.extend({}, sort);
-                        if (this.sortMap && this.sortMap[_sort.field]) _sort.field = this.sortMap[_sort.field];
-                        return _sort;
-                    }.bind(this))
+                search: this.remapFields(this.searchData),
+                sort: this.remapFields(this.sortData)
             }
             if (this.searchData.length === 0) {
                 delete params['search'];
@@ -2688,6 +2703,18 @@
                 if (this.last.searchItemVisibility === 'changed') {
                     params.visibleSearches = this.searches.filter(function (s) { return !s.hidden; }).map(function (s) { return s.field; });
                 }
+            }
+            if (this.quickFind) {
+                params.quickFind = jQuery.extend({}, this.quickFind);
+                if (params.quickFind.field) {
+                    var remapField = this.searchMap && this.searchMap[params.quickFind.field];
+                    if (remapField) params.quickFind.field = remapField;
+                }
+                else {
+                    delete params.quickFind.field;
+                }
+                if (params.quickFind.searchData) params.quickFind.searchData = this.remapFields(params.quickFind.searchData);
+                else delete params.quickFind.searchData;
             }
             // append other params
             $.extend(params, this.postData);
