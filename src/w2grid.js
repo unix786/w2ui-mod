@@ -176,6 +176,7 @@
             throw new MinorError();
 
         // public properties
+        /**Grid name (w2ui object identifier). */
         this.name         = null;
         this.box          = null;     // HTML element that hold this element
         this.columns      = [];       // { field, text, size, attr, render, hidden, gridMinWidth, editable }
@@ -194,11 +195,13 @@
 
         /** internal properties */
         this.last = {
-            /** Field for "search_all" or default search field. */
+            /** Field for "search_all" (quickFind) or default search field. */
             field: '',
-            /** Property related to property "field". */
+            /** This property is related to property "field". */
             label     : '',
+            /**Operator for combining searchData expressions.*/
             logic     : 'OR',
+            /**Value argument for "search_all" (quickFind).*/
             search    : '',
             /** Reference to a jQuery object. */
             searchAll: null,
@@ -209,6 +212,7 @@
                 indexes : [],
                 columns : {}
             },
+            /**Indicates that searchData contains non-hidden searches.*/
             multi       : false,
             scrollTop   : 0,
             scrollLeft  : 0,
@@ -226,7 +230,7 @@
             edit_col    : null,
             isSafari    : (/^((?!chrome|android).)*safari/i).test(navigator.userAgent)
         }
-        // Extending with itself to bring all inherited properties (from prototype) to the surface?
+        // Extending with constructor to bring all inherited properties (from prototype) to the surface?
         $.extend(true, this, w2obj.grid);
         this.show             = $.extend(true, {}, w2grid.prototype.show);
         this.postData         = $.extend(true, {}, w2grid.prototype.postData);
@@ -344,6 +348,10 @@
         limit        : 100,
         offset       : 0,        // how many records to skip (for infinite scroll) when pulling from server
         routeData    : {},       // data for dynamic routes
+        /**Gets repopulated in method "search".
+         * http://w2ui.com/web/docs/1.5/w2grid.searchData
+         */
+        searchData   : null,
         /** Remaps searchData fields (changes one name to another) for data requests. */
         searchMap: null,
         postData     : {},
@@ -2029,22 +2037,8 @@
             return 'grid_' + this.name + '_field_' + i + (isSecondValue ? 'B' : '');
         },
 
-        /**
-         * http://w2ui.com/web/docs/1.5/w2grid.search
-         * @param {any} field
-         * @param {any} value
-         */
-        search: function (field, value) {
-            var grid        = this;
-            var url         = (typeof this.url != 'object' ? this.url : this.url.get);
-            var searchData  = [];
-            var last_multi  = this.last.multi;
-            var last_logic  = this.last.logic;
-            var last_field  = this.last.field;
-            var last_search = this.last.search;
-            if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
-            var hasHiddenSearches = false;
-            // add hidden searches
+        createFilterSearchData: function () {
+            var searchData = [];
             for (var i = 0; i < this.searches.length; i++) {
                 if (!this.searches[i].hidden || this.searches[i].value == null) continue;
                 searchData.push({
@@ -2053,211 +2047,237 @@
                     type     : this.searches[i].type,
                     value    : this.searches[i].value || ''
                 });
-                hasHiddenSearches = true;
             }
-            // 1: search() - advanced search (reads from popup)
-            if (arguments.length === 0) {
-                last_search = '';
-                // advanced search
-                for (var i = 0; i < this.searches.length; i++) {
-                    var search   = this.searches[i];
-                    var operator = $('#grid_'+ grid.name + '_operator_'+ i).val();
-                    var field1   = $('#' + this.getSearchFieldId(i, false));
-                    var field2   = $('#' + this.getSearchFieldId(i, true));
-                    var value1   = field1.val();
-                    var value2   = field2.val();
-                    var svalue   = null;
-                    var text     = null;
+            return searchData;
+        },
 
-                    if (['int', 'float', 'money', 'currency', 'percent'].indexOf(search.type) != -1) {
-                        var fld1 = field1.data('w2field');
-                        var fld2 = field2.data('w2field');
-                        if (fld1) value1 = fld1.clean(value1);
-                        if (fld2) value2 = fld2.clean(value2);
-                    }
-                    if (['list', 'enum'].indexOf(search.type) != -1) {
-                        value1 = field1.data('selected') || {};
-                        if ($.isArray(value1)) {
-                            svalue = [];
-                            for (var j = 0; j < value1.length; j++) {
-                                svalue.push(w2utils.isFloat(value1[j].id) ? parseFloat(value1[j].id) : String(value1[j].id).toLowerCase());
-                                delete value1[j].hidden;
-                            }
-                            if ($.isEmptyObject(value1)) value1 = '';
-                        } else {
-                            text = value1.text || '';
-                            value1 = value1.id || '';
-                        }
-                    }
-                    if ((value1 !== '' && value1 != null) || (value2 != null && value2 !== '')) {
-                        var tmp = {
-                            field    : search.field,
-                            type     : search.type,
-                            operator : operator
-                        };
-                        if (operator == 'between') {
-                            $.extend(tmp, { value: [value1, value2] });
-                        } else if (operator == 'in' && typeof value1 == 'string') {
-                            $.extend(tmp, { value: value1.split(',') });
-                        } else if (operator == 'not in' && typeof value1 == 'string') {
-                            $.extend(tmp, { value: value1.split(',') });
-                        } else {
-                            $.extend(tmp, { value: value1 });
-                        }
-                        if (svalue) $.extend(tmp, { svalue: svalue });
-                        if (text) $.extend(tmp, { text: text });
+        /**Advanced search (reads from popup). */
+        getFilter: function () {
+            var searchData = this.createFilterSearchData();
+            var multi = this.last.multi;
+            // advanced search
+            for (var i = 0; i < this.searches.length; i++) {
+                var search = this.searches[i];
+                var operator = $('#grid_'+ this.name + '_operator_'+ i).val();
+                var field1 = $('#' + this.getSearchFieldId(i, false));
+                var field2 = $('#' + this.getSearchFieldId(i, true));
+                var value1 = field1.val();
+                var value2 = field2.val();
+                var svalue = null;
+                var text = null;
 
-                        // conver date to unix time
-                        try {
-                            if (search.type == 'date' && operator == 'between') {
-                                tmp.value[0] = value1; // w2utils.isDate(value1, w2utils.settings.dateFormat, true).getTime();
-                                tmp.value[1] = value2; // w2utils.isDate(value2, w2utils.settings.dateFormat, true).getTime();
-                            }
-                            if (search.type == 'date' && operator == 'is') {
-                                tmp.value = value1; // w2utils.isDate(value1, w2utils.settings.dateFormat, true).getTime();
-                            }
-                        } catch (e) {
-
+                if (['int', 'float', 'money', 'currency', 'percent'].indexOf(search.type) != -1) {
+                    var fld1 = field1.data('w2field');
+                    var fld2 = field2.data('w2field');
+                    if (fld1) value1 = fld1.clean(value1);
+                    if (fld2) value2 = fld2.clean(value2);
+                }
+                if (['list', 'enum'].indexOf(search.type) != -1) {
+                    value1 = field1.data('selected') || {};
+                    if ($.isArray(value1)) {
+                        svalue = [];
+                        for (var j = 0; j < value1.length; j++) {
+                            svalue.push(w2utils.isFloat(value1[j].id) ? parseFloat(value1[j].id) : String(value1[j].id).toLowerCase());
+                            delete value1[j].hidden;
                         }
-                        searchData.push(tmp);
-                        last_multi = true; // if only hidden searches, then do not set
+                        if ($.isEmptyObject(value1)) value1 = '';
+                    } else {
+                        text = value1.text || '';
+                        value1 = value1.id || '';
                     }
                 }
-                last_logic = 'AND';
-            }
-            // 2: search(field, value) - regular search
-            if (typeof field == 'string') {
-                // if only one argument - search all
-                if (arguments.length == 1) {
-                    value = field;
-                    field = 'all';
+                if ((value1 !== '' && value1 != null) || (value2 != null && value2 !== '')) {
+                    var tmp = {
+                        field: search.field,
+                        type: search.type,
+                        operator: operator
+                    };
+                    if (operator == 'between') {
+                        $.extend(tmp, { value: [value1, value2] });
+                    } else if (operator == 'in' && typeof value1 == 'string') {
+                        $.extend(tmp, { value: value1.split(',') });
+                    } else if (operator == 'not in' && typeof value1 == 'string') {
+                        $.extend(tmp, { value: value1.split(',') });
+                    } else {
+                        $.extend(tmp, { value: value1 });
+                    }
+                    if (svalue) $.extend(tmp, { svalue: svalue });
+                    if (text) $.extend(tmp, { text: text });
+
+                    // conver date to unix time
+                    try {
+                        if (search.type == 'date' && operator == 'between') {
+                            tmp.value[0] = value1; // w2utils.isDate(value1, w2utils.settings.dateFormat, true).getTime();
+                            tmp.value[1] = value2; // w2utils.isDate(value2, w2utils.settings.dateFormat, true).getTime();
+                        }
+                        if (search.type == 'date' && operator == 'is') {
+                            tmp.value = value1; // w2utils.isDate(value1, w2utils.settings.dateFormat, true).getTime();
+                        }
+                    } catch (e) {
+
+                    }
+                    searchData.push(tmp);
+                    multi = true; // if only hidden searches, then do not set
                 }
-                last_field  = field;
-                last_search = value;
-                last_multi  = false;
-                last_logic  = (hasHiddenSearches ? 'AND' : 'OR');
-                // loop through all searches and see if it applies
-                if (value != null) {
-                    if (field.toLowerCase() == 'all') {
-                        // if there are search fields loop thru them
-                        if (this.searches.length > 0) {
-                            for (var i = 0; i < this.searches.length; i++) {
-                                var search = this.searches[i];
-                                if (    search.type == 'text' || (search.type == 'alphanumeric' && w2utils.isAlphaNumeric(value))
-                                        || (search.type == 'int' && w2utils.isInt(value)) || (search.type == 'float' && w2utils.isFloat(value))
-                                        || (search.type == 'percent' && w2utils.isFloat(value)) || ((search.type == 'hex' || search.type == 'color') && w2utils.isHex(value))
-                                        || (search.type == 'currency' && w2utils.isMoney(value)) || (search.type == 'money' && w2utils.isMoney(value))
-                                        || (search.type == 'date' && w2utils.isDate(value)) || (search.type == 'time' && w2utils.isTime(value))
-                                        || (search.type == 'datetime' && w2utils.isDateTime(value)) || (search.type == 'datetime' && w2utils.isDate(value))
-                                        || (search.type == 'enum' && w2utils.isAlphaNumeric(value)) || (search.type == 'list' && w2utils.isAlphaNumeric(value))
-                                    ) {
-                                    var tmp = {
-                                        field    : search.field,
-                                        type     : search.type,
-                                        operator : (search.operator != null ? search.operator : (search.type == 'text' ? this.textSearch : 'is')),
-                                        value    : value
-                                    };
-                                    if ($.trim(value) != '') searchData.push(tmp);
-                                }
-                                // range in global search box
-                                if (['int', 'float', 'money', 'currency', 'percent'].indexOf(search.type) != -1 && $.trim(String(value)).split('-').length == 2) {
-                                    var t = $.trim(String(value)).split('-');
-                                    var tmp = {
-                                        field    : search.field,
-                                        type     : search.type,
-                                        operator : (search.operator != null ? search.operator : 'between'),
-                                        value    : [t[0], t[1]]
-                                    };
-                                    searchData.push(tmp);
-                                }
-                                // lists fiels
-                                if (['list', 'enum'].indexOf(search.type) != -1) {
-                                    var new_values = [];
-                                    if (search.options == null) search.options = {};
-                                    if (!Array.isArray(search.options.items)) search.options.items = [];
-                                    for (var j = 0; j < search.options.items; j++) {
-                                        var tmp = search.options.items[j];
-                                        try {
-                                            var re = new RegExp(value, 'i');
-                                            if (re.test(tmp)) new_values.push(j);
-                                            if (tmp.text && re.test(tmp.text)) new_values.push(tmp.id);
-                                        } catch (e) {}
-                                    }
-                                    if (new_values.length > 0) {
-                                        var tmp = {
-                                            field    : search.field,
-                                            type     : search.type,
-                                            operator : (search.operator != null ? search.operator : 'in'),
-                                            value    : new_values
-                                        };
-                                        searchData.push(tmp);
-                                    }
-                                }
-                            }
-                        } else {
-                            // no search fields, loop thru columns
-                            for (var i = 0; i < this.columns.length; i++) {
+            }
+            return {
+                multi: multi,
+                searchData: searchData,
+                logic: 'AND'
+            };
+        },
+
+        getQuickFind: function (field, value) {
+            // if only one argument - search all
+            if (arguments.length == 1) {
+                value = field;
+                field = 'all';
+            }
+            var searchData;
+            // loop through all searches and see if it applies
+            if (value == null) {
+                searchData = null;
+            } else {
+                if (field.toLowerCase() == 'all') {
+                    // if there are search fields loop thru them
+                    if (this.searches.length > 0) {
+                        for (var i = 0; i < this.searches.length; i++) {
+                            var search = this.searches[i];
+                            if (search.type == 'text' || (search.type == 'alphanumeric' && w2utils.isAlphaNumeric(value))
+                                || (search.type == 'int' && w2utils.isInt(value)) || (search.type == 'float' && w2utils.isFloat(value))
+                                || (search.type == 'percent' && w2utils.isFloat(value)) || ((search.type == 'hex' || search.type == 'color') && w2utils.isHex(value))
+                                || (search.type == 'currency' && w2utils.isMoney(value)) || (search.type == 'money' && w2utils.isMoney(value))
+                                || (search.type == 'date' && w2utils.isDate(value)) || (search.type == 'time' && w2utils.isTime(value))
+                                || (search.type == 'datetime' && w2utils.isDateTime(value)) || (search.type == 'datetime' && w2utils.isDate(value))
+                                || (search.type == 'enum' && w2utils.isAlphaNumeric(value)) || (search.type == 'list' && w2utils.isAlphaNumeric(value))
+                            ) {
                                 var tmp = {
-                                    field    : this.columns[i].field,
-                                    type     : 'text',
-                                    operator : this.textSearch,
-                                    value    : value
+                                    field: search.field,
+                                    type: search.type,
+                                    operator: (search.operator != null ? search.operator : (search.type == 'text' ? this.textSearch : 'is')),
+                                    value: value
+                                };
+                                if ($.trim(value) != '') searchData.push(tmp);
+                            }
+                            // range in global search box
+                            if (['int', 'float', 'money', 'currency', 'percent'].indexOf(search.type) != -1 && $.trim(String(value)).split('-').length == 2) {
+                                var t = $.trim(String(value)).split('-');
+                                var tmp = {
+                                    field: search.field,
+                                    type: search.type,
+                                    operator: (search.operator != null ? search.operator : 'between'),
+                                    value: [t[0], t[1]]
                                 };
                                 searchData.push(tmp);
                             }
+                            // lists fiels
+                            if (['list', 'enum'].indexOf(search.type) != -1) {
+                                var new_values = [];
+                                    if (search.options == null) search.options = {};
+                                    if (!Array.isArray(search.options.items)) search.options.items = [];
+                                for (var j = 0; j < search.options.items; j++) {
+                                    var tmp = search.options.items[j];
+                                    try {
+                                        var re = new RegExp(value, 'i');
+                                        if (re.test(tmp)) new_values.push(j);
+                                        if (tmp.text && re.test(tmp.text)) new_values.push(tmp.id);
+                                    } catch (e) { }
+                                }
+                                if (new_values.length > 0) {
+                                    var tmp = {
+                                        field: search.field,
+                                        type: search.type,
+                                        operator: (search.operator != null ? search.operator : 'in'),
+                                        value: new_values
+                                    };
+                                    searchData.push(tmp);
+                                }
+                            }
                         }
                     } else {
-                        var el = this.getSearchAll();
-                        var search = this.getSearch(field);
-                        if (search == null) search = { field: field, type: 'text' };
-                        if (search.field == field) this.last.label = search.label;
-                        if (value !== '') {
-                            var op  = this.textSearch;
-                            var val = value;
-                            if (['date', 'time', 'datetime'].indexOf(search.type) != -1) op = 'is';
-                            if (['list', 'enum'].indexOf(search.type) != -1) {
-                                op = 'is';
-                                var tmp = el.data('selected');
-                                if (tmp && !$.isEmptyObject(tmp)) val = tmp.id; else val = '';
-                            }
-                            if (search.type == 'int' && value !== '') {
-                                op = 'is';
-                                if (String(value).indexOf('-') != -1) {
-                                    var tmp = value.split('-');
-                                    if (tmp.length == 2) {
-                                        op = 'between';
-                                        val = [parseInt(tmp[0]), parseInt(tmp[1])];
-                                    }
-                                }
-                                if (String(value).indexOf(',') != -1) {
-                                    var tmp = value.split(',');
-                                    op  = 'in';
-                                    val = [];
-                                    for (var i = 0; i < tmp.length; i++) val.push(tmp[i]);
-                                }
-                            }
-                            if (search.operator != null) op = search.operator;
+                        // no search fields, loop thru columns
+                        for (var i = 0; i < this.columns.length; i++) {
                             var tmp = {
-                                field    : search.field,
-                                type     : search.type,
-                                operator : op,
-                                value    : val
+                                field: this.columns[i].field,
+                                type: 'text',
+                                operator: this.textSearch,
+                                value: value
                             };
                             searchData.push(tmp);
                         }
                     }
+                } else {
+                    var el = this.getSearchAll();
+                    var search = this.getSearch(field);
+                    if (search == null) search = { field: field, type: 'text' };
+                    if (search.field == field) this.last.label = search.label;
+                    if (value !== '') {
+                        var op = this.textSearch;
+                        var val = value;
+                        if (['date', 'time', 'datetime'].indexOf(search.type) != -1) op = 'is';
+                        if (['list', 'enum'].indexOf(search.type) != -1) {
+                            op = 'is';
+                            var tmp = el.data('selected');
+                            if (tmp && !$.isEmptyObject(tmp)) val = tmp.id; else val = '';
+                        }
+                        if (search.type == 'int' && value !== '') {
+                            op = 'is';
+                            if (String(value).indexOf('-') != -1) {
+                                var tmp = value.split('-');
+                                if (tmp.length == 2) {
+                                    op = 'between';
+                                    val = [parseInt(tmp[0]), parseInt(tmp[1])];
+                                }
+                            }
+                            if (String(value).indexOf(',') != -1) {
+                                var tmp = value.split(',');
+                                op = 'in';
+                                val = [];
+                                for (var i = 0; i < tmp.length; i++) val.push(tmp[i]);
+                            }
+                        }
+                        if (search.operator != null) op = search.operator;
+                        var tmp = {
+                            field: search.field,
+                            type: search.type,
+                            operator: op,
+                            value: val
+                        };
+                        searchData.push(tmp);
+                    }
                 }
+            }
+            return {
+                field: field,
+                value: value,
+                searchData: searchData,
+            };
+        },
+
+        /**
+         * http://w2ui.com/web/docs/1.5/w2grid.search
+         * @param {any} field
+         * @param {any} value
+         */
+        search: function (field, value) {
+            var pendingFilter, pendingQuickFind;
+            if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
+            // 1: search() - advanced search (reads from popup)
+            if (arguments.length === 0) {
+                pendingFilter = this.getFilter();
+            }
+            // 2: search(field, value) - regular search
+            if (typeof field == 'string') {
+                pendingQuickFind = this.getQuickFind();
             }
             // 3: search([ { field, value, [operator,] [type] }, { field, value, [operator,] [type] } ], logic) - submit whole structure
             if ($.isArray(field)) {
+                var searchData = this.createFilterSearchData();
                 var logic = 'AND';
                 if (typeof value == 'string') {
                     logic = value.toUpperCase();
                     if (logic != 'OR' && logic != 'AND') logic = 'AND';
                 }
-                last_search = '';
-                last_multi  = true;
-                last_logic  = logic;
                 for (var i = 0; i < field.length; i++) {
                     var data   = field[i];
                     if (typeof data.value == 'number') data.operator = 'is';
@@ -2266,26 +2286,41 @@
                     // merge current field and search if any
                     searchData.push(data);
                 }
+                this.searchData = searchData;
+                pendingFilter = {
+                    multi: true,
+                    searchData: searchData,
+                    logic: logic
+                };
             }
             // event before
             var edata = this.trigger({
                     phase: 'before', type: 'search', target: this.name, multi: (arguments.length === 0 ? true : false),
                     searchField: (field ? field : 'multi'), searchValue: (field ? value : 'multi'),
-                    searchData: searchData, searchLogic: last_logic });
+                    searchData: pendingFilter ? pendingFilter.searchData : this.searchData,
+                    quickFind: pendingQuickFind ?? this.quickFind,
+                    searchLogic: pendingFilter.logic });
             if (edata.isCancelled === true) return;
             // default action
-            this.searchData  = edata.searchData;
-            this.last.field  = last_field;
-            this.last.search = last_search;
-            this.last.multi  = last_multi;
-            this.last.logic  = edata.searchLogic;
+            this.quickFind = edata.quickFind;
+            if (this.quickFind) {
+                this.last.field = this.quickFind.field;
+                this.last.search = this.quickFind.value;
+            } else {
+                this.last.field = 'all';
+                this.last.search = '';
+            }
+            this.searchData = edata.searchData;
+            this.last.multi = pendingFilter.multi;
+            this.last.logic = edata.searchLogic;
             this.last.scrollTop         = 0;
             this.last.scrollLeft        = 0;
             this.last.selection.indexes = [];
             this.last.selection.columns = {};
-            // -- clear all search field
+
             this.searchClose();
             // apply search
+            var url = (typeof this.url != 'object' ? this.url : this.url.get);
             if (url) {
                 this.last.xhr_offset = 0;
                 this.reload();
@@ -2342,7 +2377,6 @@
         },
 
         searchClose: function () {
-            var obj = this;
             if (!this.box) return;
             if (this.searches.length === 0) return;
             if (this.toolbar) this.toolbar.uncheck('w2ui-search-advanced', 'w2ui-column-on-off');
@@ -2535,7 +2569,7 @@
         },
 
         /**
-         * Shows column selection overlay for toolbar filter.
+         * Shows column selection overlay for toolbar filter (quickFind).
          * @param {any} button target element to show overlay.
          */
         searchShowFields: function (forceHide, button) {
@@ -8397,7 +8431,14 @@
                 title : '.w2ui-grid-header:visible',
                 body  : '.w2ui-grid-box'
             }, options);
-        }
+        },
+
+        /**Inherited from w2utils.event*/
+        on: null,
+        /**Inherited from w2utils.event*/
+        off: null,
+        /**Inherited from w2utils.event*/
+        trigger: null,
     }
 
     $.extend(w2grid.prototype, w2utils.event);
