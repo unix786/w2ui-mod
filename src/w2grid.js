@@ -2311,7 +2311,9 @@
                 this.last.search = '';
             }
             this.searchData = edata.searchData;
-            this.last.multi = pendingFilter.multi;
+            if (pendingFilter) {
+                this.last.multi = pendingFilter.multi;
+            }
             this.last.logic = edata.searchLogic;
             this.last.scrollTop         = 0;
             this.last.scrollLeft        = 0;
@@ -2390,6 +2392,7 @@
          * @param {any} elements jQuery selection.
          */
         inlineStyleWorkaround: function (elements) {
+            // The problem seems to have been w2field.clear. It should be fixed now.
             elements.css('height', '');
             elements.css('padding-left', '');
             elements.css('padding-right', '');
