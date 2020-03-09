@@ -2229,7 +2229,7 @@
             var edata = {
                 phase: 'before', type: 'search', multi: (arguments.length === 0 ? true : false), target: this.name,
                 searchData: pendingFilter ? pendingFilter.searchData : this.searchData,
-                quickFind: pendingQuickFind ?? this.quickFind,
+                quickFind: pendingQuickFind || this.quickFind,
                 searchField: (field ? field : 'multi'), searchValue: (field ? value : 'multi')
             };
             // event before
