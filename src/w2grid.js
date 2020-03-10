@@ -212,8 +212,6 @@
                 indexes : [],
                 columns : {}
             },
-            /**Indicates that searchData contains non-hidden searches?*/
-            multi       : false,
             scrollTop   : 0,
             scrollLeft  : 0,
             colStart    : 0,    // for column virtual scrolling
@@ -261,6 +259,7 @@
         if (searches)     for (p = 0; p < searches.length; p++)     this.searches[p]      = $.extend(true, {}, searches[p]);
         if (searchData)   for (p = 0; p < searchData.length; p++)   this.searchData[p]    = $.extend(true, {}, searchData[p]);
         if (sortData)     for (p = 0; p < sortData.length; p++)     this.sortData[p]      = $.extend(true, {}, sortData[p]);
+        if (this.searchData.length > 0) this.defaultSearchData = this.searchData.slice();
 
         // check if there are records without recid
         if (records) for (var r = 0; r < records.length; r++) {
@@ -2056,7 +2055,6 @@
         /**Advanced search (reads from popup). */
         getFilter: function () {
             var searchData = this.createFilterSearchData();
-            var multi = this.last.multi;
             // advanced search
             for (var i = 0; i < this.searches.length; i++) {
                 var search = this.searches[i];
@@ -2119,11 +2117,9 @@
 
                     }
                     searchData.push(tmp);
-                    multi = true; // if only hidden searches, then do not set
                 }
             }
             return {
-                multi: multi,
                 searchData: searchData,
                 logic: 'AND'
             };
@@ -2298,7 +2294,6 @@
                 }
                 this.searchData = searchData;
                 pendingFilter = {
-                    multi: true,
                     searchData: searchData,
                     logic: logic
                 };
@@ -2321,10 +2316,8 @@
                 this.last.search = '';
             }
             this.searchData = edata.searchData;
-            if (pendingFilter) {
-                this.last.multi = pendingFilter.multi;
-            }
-            this.last.logic = edata.searchLogic;
+            if (pendingFilter) this.last.logic = pendingFilter.logic;
+
             this.last.scrollTop         = 0;
             this.last.scrollLeft        = 0;
             this.last.selection.indexes = [];
@@ -2476,7 +2469,7 @@
             });
         },
 
-        /**Search input field. */
+        /**Search input field (quickFind). */
         getSearchAllId: function () {
             return 'grid_' + this.name + '_search_all';
         },
@@ -2486,7 +2479,7 @@
             return 'grid_' + this.name + '_searchClear';
         },
 
-        /**Gets the "search_all" input field in the toolbar. Returns a jQuery object. */
+        /**Gets the "search_all" input field in the toolbar (now called "quickFind"). Returns a jQuery object. */
         getSearchAll: function () {
             if (this.last.searchAll) return this.last.searchAll;
             this.last.searchAll = $('#' + this.getSearchAllId());
@@ -2510,8 +2503,9 @@
             });
         },
 
-        searchReset: function (noRefresh, initSearchData) {
+        searchReset: function (noRefresh) {
             var searchData = [];
+            var initSearchData = this.defaultSearchData;
             var hasHiddenSearches = false;
             // add hidden searches
             for (var i = 0; i < this.searches.length; i++) {
@@ -2540,27 +2534,7 @@
             if (edata.isCancelled === true) return;
             // default action
             this.searchData  = edata.searchData;
-            this.last.search = '';
             this.last.logic  = (hasHiddenSearches || initSearchData ? 'AND' : 'OR');
-            // --- do not reset to All Fields (I think)
-            if (this.searches.length > 0) {
-                if (!this.multiSearch || !this.show.searchAll) {
-                    var tmp = 0;
-                    while (tmp < this.searches.length && (this.searches[tmp].hidden || this.searches[tmp].simple === false)) tmp++;
-                    if (tmp >= this.searches.length) {
-                        // all searches are hidden
-                        this.last.field = '';
-                        this.last.label = '';
-                    } else {
-                        this.last.field = this.searches[tmp].field;
-                        this.last.label = this.searches[tmp].label;
-                    }
-                } else {
-                    this.last.field = 'all';
-                    this.last.label = w2utils.lang('All Fields');
-                }
-            }
-            this.last.multi      = false;
             this.last.xhr_offset = 0;
             // reset scrolling position
             this.last.scrollTop  = 0;
@@ -2569,13 +2543,19 @@
             this.last.selection.columns = {};
             // -- clear all search field
             this.searchClose();
-            this.getSearchAll().val('').removeData('selected');
             if (this.last.searchItemVisibility === 'changePending') this.last.searchItemVisibility = 'changed';
             // apply search
             if (!noRefresh) this.reload();
-            $('#' + this.getSearchClearId()).hide();
             // event after
             this.trigger($.extend(edata, { phase: 'after' }));
+        },
+
+        /**Clears quickFind field ("search all"). Does not reload data. */
+        quickFindReset: function () {
+            this.last.search = '';
+            this.quickFind = null;
+            this.getSearchAll().val('').removeData('selected');
+            $('#' + this.getSearchClearId()).hide();
         },
 
         /**
@@ -2609,8 +2589,7 @@
                     search = { field: 'all', label: w2utils.lang('All Fields') };
                 } else {
                     if (column != null && column.hideable === false) continue;
-                    // don't show hidden searches
-                    if (this.searches[s].hidden === true || this.searches[s].simple === false) continue;
+                    if (this.searches[s].simple === false) continue;
                 }
                 if (search.label == null && search.caption != null) {
                     console.log('NOTICE: grid search.caption property is deprecated, please use search.label. Search ->', search);
@@ -4945,12 +4924,7 @@
                 if (this.searches[s].field == this.last.field) this.last.label = this.searches[s].label;
             }
             if (!this.show.toolbarSearchLayout2) {
-                if (this.last.multi) {
-                    el.attr('placeholder', '[' + w2utils.lang('Multiple Fields') + ']');
-                    el.w2field('clear');
-                } else {
-                    el.attr('placeholder', w2utils.lang(this.last.label));
-                }
+                el.attr('placeholder', w2utils.lang(this.last.label));
             }
             if (el.val() != this.last.search) {
                 var val = this.last.search;
@@ -4991,25 +4965,7 @@
                     tmp.expanded = false;
                 }
             }
-            // mark selection
-            if (obj.markSearch) {
-                setTimeout(function () {
-                    // mark all search strings
-                    var search = [];
-                    for (var s = 0; s < obj.searchData.length; s++) {
-                        var sdata = obj.searchData[s];
-                        var fld = obj.getSearch(sdata.field);
-                        if (!fld || fld.hidden) continue;
-                        var ind = obj.getColumn(sdata.field, true);
-                        search.push({ field: sdata.field, search: sdata.value, col: ind });
-                    }
-                    if (search.length > 0) {
-                        search.forEach(function (item) {
-                            $(obj.box).find('td[col="'+ item.col +'"]').not('.w2ui-head').w2marker(item.search);
-                        });
-                    }
-                }, 50);
-            }
+            this.refreshMarkers();
             // enable/disable toolbar search button
             if (this.show.toolbarSave) {
                 if (this.getChanges().length > 0) this.toolbar.enable('w2ui-save'); else this.toolbar.disable('w2ui-save');
@@ -5029,6 +4985,42 @@
                 obj.last.columnDrag.remove();
             }
             return (new Date()).getTime() - time;
+        },
+
+        /**Highlights search results ir markSearch is set. */
+        refreshMarkers: function () {
+            if (!this.markSearch) return;
+
+            var obj = this;
+
+            // mark search
+            if (!obj.markSearch) return;
+            clearTimeout(obj.last.marker_timer);
+
+            /**
+             * @param {any} sdata item from searchData or quickFind.data
+             * @param {any} ignoreHidden will not highlight results from hidden searches.
+             */
+            var applyMarker = function (sdata, ignoreHidden) {
+                if (!(sdata.type == 'text')) return;
+
+                var fld = obj.getSearch(sdata.field);
+                if (!fld || (ignoreHidden && fld.hidden)) return;
+                var col = obj.getColumn(sdata.field, true);
+                $(obj.box).find('td[col="' + col + '"]').not('.w2ui-head').w2marker(sdata.value);
+            };
+
+            obj.last.marker_timer = setTimeout(function () {
+                // mark all search strings
+                for (var s = 0; s < obj.searchData.length; s++) {
+                    applyMarker(obj.searchData[s], true);
+                }
+                if (obj.quickFind && obj.quickFind.data) {
+                    for (var s = 0; s < obj.quickFind.data.length; s++) {
+                        applyMarker(obj.quickFind.data[s], false);
+                    }
+                }
+            }, 50);
         },
 
         refreshBody: function () {
@@ -6022,7 +6014,7 @@
                     var fld = jQuery(input).data('w2field');
                     if (fld) val = fld.clean(val);
                     if (fld && fld.type == 'list' && sel && typeof sel.id == 'undefined') {
-                        grid.searchReset();
+                        grid.reload();
                     }
                     else {
                         grid.search(grid.last.field, val);
@@ -6033,7 +6025,8 @@
 
         searchClearClicked: function () {
             clearTimeout(this.last.searchAllChangedTimeout);
-            this.searchReset();
+            this.quickFindReset();
+            this.reload();
         },
 
         initToolbar: function () {
@@ -7533,25 +7526,7 @@
                     }
 
             function markSearch() {
-                // mark search
-                if (!obj.markSearch) return;
-                clearTimeout(obj.last.marker_timer);
-                obj.last.marker_timer = setTimeout(function () {
-                    // mark all search strings
-                    var search = [];
-                    for (var s = 0; s < obj.searchData.length; s++) {
-                        var sdata = obj.searchData[s];
-                        var fld = obj.getSearch(sdata.field);
-                        if (!fld || fld.hidden) continue;
-                        var ind = obj.getColumn(sdata.field, true);
-                        search.push({ field: sdata.field, search: sdata.value, col: ind });
-                    }
-                    if (search.length > 0) {
-                        search.forEach(function (item) {
-                            $(obj.box).find('td[col="'+ item.col +'"]').not('.w2ui-head').w2marker(item.search);
-                        });
-                    }
-                }, 50);
+                obj.refreshMarkers();
             }
         },
 
@@ -8128,7 +8103,6 @@
                 show        : $.extend({}, this.show),
                 last        : {
                     search      : this.last.search,
-                    multi       : this.last.multi,
                     logic       : this.last.logic,
                     label       : this.last.label,
                     field       : this.last.field,
@@ -8218,6 +8192,7 @@
                 for (var c = 0; c < newState.sortData.length; c++) this.sortData.push(newState.sortData[c]);
                 this.searchData.splice(0, this.searchData.length);
                 for (var c = 0; c < newState.searchData.length; c++) this.searchData.push(newState.searchData[c]);
+                this.quickFind = this.getQuickFind(this.last.field, this.last.search);
                 // apply sort and search
                 setTimeout(function () {
                     // needs timeout as records need to be populated
