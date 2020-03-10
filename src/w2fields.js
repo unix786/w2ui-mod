@@ -28,6 +28,7 @@
 
     var w2field = function (options) {
         // public properties
+        /**HTML element*/
         this.el          = null;
         this.helpers     = {}; // object or helper elements
         this.type        = options.type || 'text';
@@ -514,6 +515,24 @@
             return false;
         },
 
+        /**
+         * Restores style saved with tmpSaveInlineStyle.
+         * @param {any} name Property name (camelCase)
+         * @param {any} tmp tmp object from element data.
+         */
+        tmpRestoreInlineStyle: function (name, tmp) {
+            var obj = $(this.el);
+            if (!tmp) tmp = obj.data('tmp');
+            if (!tmp) return;
+
+            var varName = 'old-' + name;
+            var prevValue = tmp[varName];
+            if (prevValue == null) return;
+
+            obj.css(name, prevValue);
+            tmp[varName] = null;
+        },
+
         clear: function () {
             var options    = this.options;
             // if money then clear value
@@ -531,9 +550,9 @@
             if (!this.tmp) return;
             // restore paddings
             if (tmp != null) {
-                $(this.el).height('auto');
-                if (tmp && tmp['old-padding-left'])  $(this.el).css('padding-left',  tmp['old-padding-left']);
-                if (tmp && tmp['old-padding-right']) $(this.el).css('padding-right', tmp['old-padding-right']);
+                //$(this.el).height('auto'); // This was added in commit cb01bd832b78c8a0d0b175501140e729a8c98c39. Better have it set in CSS if needed.
+                this.tmpRestoreInlineStyle('padding-left', tmp);
+                this.tmpRestoreInlineStyle('padding-right', tmp);
                 if (tmp && tmp['old-background-color']) $(this.el).css('background-color', tmp['old-background-color']);
                 if (tmp && tmp['old-border-color']) $(this.el).css('border-color', tmp['old-border-color']);
                 // remove resize watcher
@@ -2095,15 +2114,27 @@
             return true;
         },
 
+        /**
+         * Stores inline style value if it was not saved yet. It can be restored with tmpRestoreInlineStyle.
+         * @param {any} name CSS style name (lower-kebab-case)
+         */
+        tmpSaveInlineStyle: function (name) {
+            var obj = $(this.el);
+            var tmp = obj.data('tmp');
+            if (!tmp) {
+                tmp = {};
+                obj.data('tmp', tmp);
+            }
+            var varName = 'old-' + name;
+            if (tmp[varName] == null) tmp[varName] = this.el.style[name];
+        },
+
         addPrefix: function () {
             var obj = this;
             setTimeout(function () {
                 if (obj.type === 'clear') return;
                 var helper;
-                var tmp = $(obj.el).data('tmp') || {};
-                if (tmp['old-padding-left']) $(obj.el).css('padding-left', tmp['old-padding-left']);
-                tmp['old-padding-left'] = $(obj.el).css('padding-left');
-                $(obj.el).data('tmp', tmp);
+                obj.tmpSaveInlineStyle('padding-left');
                 // remove if already displayed
                 if (obj.helpers.prefix) $(obj.helpers.prefix).remove();
                 if (obj.options.prefix !== '') {
@@ -2158,10 +2189,7 @@
             var helper, pr;
             setTimeout(function () {
                 if (obj.type === 'clear') return;
-                var tmp = $(obj.el).data('tmp') || {};
-                if (tmp['old-padding-right']) $(obj.el).css('padding-right', tmp['old-padding-right']);
-                tmp['old-padding-right'] = $(obj.el).css('padding-right');
-                $(obj.el).data('tmp', tmp);
+                obj.tmpSaveInlineStyle('paddingRight');
                 pr = parseInt($(obj.el).css('padding-right'), 10);
                 if (obj.options.arrows) {
                     // remove if already displayed
