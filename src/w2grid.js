@@ -210,7 +210,8 @@
             sel_col     : null,
             sel_type    : null,
             edit_col    : null,
-            isSafari    : (/^((?!chrome|android).)*safari/i).test(navigator.userAgent)
+            isSafari    : (/^((?!chrome|android).)*safari/i).test(navigator.userAgent),
+            isTouchOrMobile : /(touch|mobile)/i.test(navigator.userAgent),
         }
         // Extending with constructor to bring all inherited properties (from prototype) to the surface?
         $.extend(true, this, w2obj.grid);
@@ -5081,7 +5082,7 @@
                       '    <div id="grid_'+ this.name +'_fsummary" class="w2ui-grid-body w2ui-grid-summary"></div>'+
                       '    <div id="grid_'+ this.name +'_summary" class="w2ui-grid-body w2ui-grid-summary"></div>'+
                       '    <div id="grid_'+ this.name +'_footer" class="w2ui-grid-footer"></div>'+
-                      '    <textarea id="grid_'+ this.name +'_focus" class="w2ui-grid-focus-input"></textarea>'+
+                      (this.last.isTouch ? '' : '    <textarea id="grid_'+ this.name +'_focus" class="w2ui-grid-focus-input"></textarea>')+
                       '</div>');
             if (this.selectType != 'row') $(this.box).addClass('w2ui-ss');
             if ($(this.box).length > 0) $(this.box)[0].style.cssText += this.style;
@@ -5124,10 +5125,10 @@
                 })
                 .on('paste', function (event) {
                     var el = this;
-                    setTimeout(function () { w2ui[obj.name].paste(el.value); el.value = ''; }, 1)
+                    setTimeout(function () { obj.paste(el.value); el.value = ''; }, 1)
                 })
                 .on('keydown', function (event) {
-                    w2ui[obj.name].keydown.call(w2ui[obj.name], event);
+                    obj.keydown.call(obj, event);
                 });
             // init mouse events for mouse selection
             var edataCol; // event for column select
@@ -5139,7 +5140,7 @@
             if ($('.w2ui-layout').length === 0) { // if there is layout, it will send a resize event
                 $(window).off('resize.w2ui-'+ this.name)
                     .on('resize.w2ui-'+ this.name, function (event) {
-                        w2ui[obj.name].resize();
+                        obj.resize();
                     });
             }
             return (new Date()).getTime() - time;
