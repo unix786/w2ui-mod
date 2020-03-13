@@ -5082,7 +5082,7 @@
                       '    <div id="grid_'+ this.name +'_fsummary" class="w2ui-grid-body w2ui-grid-summary"></div>'+
                       '    <div id="grid_'+ this.name +'_summary" class="w2ui-grid-body w2ui-grid-summary"></div>'+
                       '    <div id="grid_'+ this.name +'_footer" class="w2ui-grid-footer"></div>'+
-                      (this.last.isTouch ? '' : '    <textarea id="grid_'+ this.name +'_focus" class="w2ui-grid-focus-input"></textarea>')+
+                      (this.last.isTouchOrMobile ? '' : '    <textarea id="grid_'+ this.name +'_focus" class="w2ui-grid-focus-input"></textarea>')+
                       '</div>');
             if (this.selectType != 'row') $(this.box).addClass('w2ui-ss');
             if ($(this.box).length > 0) $(this.box)[0].style.cssText += this.style;
