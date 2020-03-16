@@ -1,4 +1,6 @@
 module.exports = function (grunt) {
+    // hack to make grunt-contrib-concat NOT insert CRLF on Windows:
+    grunt.util.linefeed = '\n';
 
     var w2ui    = '/* w2ui 1.5.x (nightly) (c) http://w2ui.com, vitmalina@gmail.com */\n';
     var fields  = '/* w2ui-fields.js 1.5.x (nightly), part of w2ui (c) http://w2ui.com, vitmalina@gmail.com */\n';
@@ -65,7 +67,7 @@ module.exports = function (grunt) {
             w2ui: {
                 options: {
                     banner: w2ui,
-		    sourceMap: false
+                    sourceMap: false
                 },
                 src: [
                     'src/w2utils.js',
