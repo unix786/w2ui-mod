@@ -19,6 +19,7 @@
         display: flex;
         height: auto;
         flex-wrap: wrap;
+        align-items: center;
     }
 
     table {
@@ -26,6 +27,15 @@
         td {
             border: 0px !important;
         }
+    }
+
+    > * {
+        height: 17px;
+    }
+
+    > .tb-item {
+        display: flex;
+        align-items: center;
     }
 
     .w2ui-button {
@@ -110,7 +120,6 @@
         }
 
         table {
-            height: 17px;
             border-radius: @toolbar-button-border-radius;
             cursor: default;
         }

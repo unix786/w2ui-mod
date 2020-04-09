@@ -10,3 +10,4 @@ node_modules/
 copy_shield.sh
 
 dist/
+/.vs

@@ -588,14 +588,7 @@
 
             if (el.length === 0) {
                 // does not exist - create it
-                var attribs = (it.hidden ? ' style="display: none"' : '') + (it.disabled ? ' class="disabled"' : '');
                 if (this.overflowIntoNextRow) {
-                    if (it.type == 'spacer') {
-                        html = '<div class="spacer" id="' + this.getElementId(it) + '"</div>';
-                    }
-                    else {
-                        html = '<div id="' + this.getElementId(it) + '"' + attribs + '>' + html + '</div>';
-                    }
                     var prevElement = null;
                     for (var i = parseInt(this.get(id, true)); i > 0;) {
                         i--;
@@ -610,11 +603,6 @@
                         prevElement.after(html);
                 }
                 else {
-                    if (it.type == 'spacer') {
-                        html = '<td width="100%" id="' + this.getElementId(it) +'" align="right"></td>';
-                    } else {
-                        html = '<td id="' + this.getElementId(it) + '"' + attribs + ' valign="middle">' + html + '</td>';
-                    }
                     var itemIdx = this.get(id, true);
                     if (itemIdx == this.items.length - 1) {
                         $(this.box).find('#tb_' + this.name + '_right').before(html);
@@ -623,13 +611,12 @@
                     }
                 }
             } else {
+                // Close any associated overlay if checked state is gone.
                 if (['menu', 'menu-radio', 'menu-check', 'drop', 'color', 'text-color'].indexOf(it.type) != -1 && it.checked == false) {
                     if ($('#w2ui-overlay-'+ this.name).length > 0) $('#w2ui-overlay-'+ this.name)[0].hide();
                 }
                 // refresh
-                el.html(html);
-                if (it.hidden) { el.css('display', 'none'); } else { el.css('display', ''); }
-                if (it.disabled) { el.addClass('disabled'); } else { el.removeClass('disabled'); }
+                el.replaceWith(html);
             }
             // event after
             if (typeof it.onRefresh == 'function') {
@@ -685,19 +672,24 @@
         // --- Internal Functions
 
         getItemHTML: function (item) {
-            var html = '';
             if (item.caption != null && item.text == null) item.text = item.caption; // for backward compatibility
             if (item.text == null) item.text = '';
             if (item.tooltip == null && item.hint != null) item.tooltip = item.hint; // for backward compatibility
             if (item.tooltip == null) item.tooltip = '';
-            var img  = '<td>&#160;</td>';
             var text = (typeof item.text == 'function' ? item.text.call(this, item) : item.text);
-            if (item.img)  img = '<td><div class="w2ui-tb-image w2ui-icon '+ item.img +'"></div></td>';
+            var img  = '';
             if (item.icon) {
-                img = '<td><div class="w2ui-tb-image"><span class="'+
-                    (typeof item.icon == 'function' ? item.icon.call(this, item) : item.icon) +'"></span></div></td>';
+                img = '<div class="w2ui-tb-image"><span class="'+
+                    (typeof item.icon == 'function' ? item.icon.call(this, item) : item.icon) +'"></span></div>';
             }
-            if (html === '') switch (item.type) {
+            else if (item.img) {
+                img = '<div class="w2ui-tb-image w2ui-icon '+ item.img +'"></div>';
+            }
+            else if (item.iconHtml) {
+                img = item.iconHtml;
+            }
+            var html = '';
+            switch (item.type) {
                 case 'color':
                 case 'text-color':
                     if (typeof item.color == 'string') {
@@ -721,30 +713,26 @@
                 case 'check':
                 case 'radio':
                 case 'drop':
-                    html += '<table cellpadding="0" cellspacing="0" '+
-                            '       class="w2ui-button'+ (item.checked ? ' checked' : '') + (item.class ? ' ' + item.class : '') + '" '+
+                    return '<div id="' + this.getElementId(item) + '"' + (item.hidden ? ' style="display: none"' : '') +
+                            '       class="tb-item ' + item.type + ' w2ui-button'+ (item.checked ? ' checked' : '') + (item.disabled ? ' disabled' : '') + (item.class ? ' ' + item.class : '') + '" '+
                             '       onclick     = "var el=w2ui[\''+ this.name + '\']; if (el) el.click(\''+ item.id +'\', event);" '+
                             '       onmouseenter = "' + (!item.disabled ? "jQuery(this).addClass('over'); w2ui['"+ this.name +"'].tooltipShow('"+ item.id +"', event);" : "") + '"'+
                             '       onmouseleave = "' + (!item.disabled ? "jQuery(this).removeClass('over').removeClass('down'); w2ui['"+ this.name +"'].tooltipHide('"+ item.id +"', event);" : "") + '"'+
                             '       onmousedown = "' + (!item.disabled ? "jQuery(this).addClass('down');" : "") + '"'+
                             '       onmouseup   = "' + (!item.disabled ? "jQuery(this).removeClass('down');" : "") + '"'+
-                            '><tbody>'+
-                            '<tr><td>'+
-                            '  <table cellpadding="1" cellspacing="0"><tbody>'+
-                            '  <tr>' +
+                            '>'+
                                     img +
                                     (text !== ''
-                                        ? '<td class="w2ui-tb-text w2ui-tb-caption" nowrap="nowrap" style="'+ (item.style ? item.style : '') +'">'+ w2utils.lang(text) +'</td>'
+                                        ? '<div class="w2ui-tb-text w2ui-tb-caption" nowrap="nowrap" style="'+ (item.style ? item.style : '') +'">'+ w2utils.lang(text) +'</div>'
                                         : ''
                                     ) +
                                     (item.count != null
-                                        ? '<td class="w2ui-tb-count" nowrap="nowrap"><span>'+ item.count +'</span></td>'
+                                        ? '<div class="w2ui-tb-count" nowrap="nowrap"><span>'+ item.count +'</span></div>'
                                         : ''
                                     ) +
                                     (((['menu', 'menu-radio', 'menu-check', 'drop', 'color', 'text-color'].indexOf(item.type) != -1) && item.arrow !== false) ?
-                                        '<td class="w2ui-tb-down" nowrap="nowrap"><div></div></td>' : '') +
-                            '  </tr></tbody></table>'+
-                            '</td></tr></tbody></table>';
+                                        '<div class="w2ui-tb-down" nowrap="nowrap"><div></div></div>' : '') +
+                            '</div>';
                     break;
 
                 case 'break':
@@ -759,7 +747,22 @@
                             '</tr></tbody></table>';
                     break;
             }
-            return '<div>' + html + '</div>';
+            html = '<div>' + html + '</div>';
+
+            var it = item;
+            if (it.type == 'spacer') {
+                if (this.overflowIntoNextRow)
+                    html = '<div class="spacer" id="' + this.getElementId(it) + '"</div>';
+                else
+                    html = '<td width="100%" id="' + this.getElementId(it) +'" align="right"></td>';
+            } else {
+                var attribs = (it.hidden ? ' style="display: none"' : '') + (it.disabled ? ' class="disabled"' : '');
+                if (this.overflowIntoNextRow)
+                    html = '<div id="' + this.getElementId(it) + '"' + attribs + '>' + html + '</div>';
+                else
+                    html = '<td id="' + this.getElementId(it) + '"' + attribs + ' valign="middle">' + html + '</td>';
+            }
+            return html;
         },
 
         tooltipShow: function (id, event, forceRefresh) {
