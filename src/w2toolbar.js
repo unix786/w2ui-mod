@@ -12,7 +12,15 @@
 *   - menu drop down can have groups now
 *   - item.caption - deprecated
 *   - item.text - can be a function
-*   - item.icon - can be a function
+*   - item.icon - can be a function or string to specify a name, or an object as follows:
+*       {
+*           type: optional string, determines how "value" is used.
+*           value:
+*               - for 'name' type (default), generates a block element with one of the built-in icons.
+*               - for 'url' type, generates a block element with class "icon" and the specified url.
+*               - for 'class' type, generates a block element with the specified class.
+*               - for 'html' type, uses the specified html in place of the icon.
+*       }
 *   - item.tooltip - can be a function
 *   - item.color
 *   - item.options
@@ -716,17 +724,9 @@
                 }
             }
             var text = (typeof item.text == 'function' ? item.text.call(this, item) : item.text);
-            var img  = '';
-            if (item.icon) {
-                img = '<div class="w2ui-tb-image"><span class="'+
-                    (typeof item.icon == 'function' ? item.icon.call(this, item) : item.icon) +'"></span></div>';
-            }
-            else if (item.img) {
-                img = '<div class="w2ui-tb-image w2ui-icon '+ item.img +'"></div>';
-            }
-            else if (item.iconHtml) {
-                img = item.iconHtml;
-            }
+            var img;
+            if (item.icon) img = this.getIconHtml((typeof item.icon == 'function' ? item.icon.call(this, item) : item.icon));
+            else if (item.img) img = this.getIconHtml({ type: 'div', value: item.img });
             var html = '';
             switch (item.type) {
                 case 'color':
@@ -760,7 +760,7 @@
                             '       onmousedown = "' + (!item.disabled ? "jQuery(this).addClass('down');" : "") + '"'+
                             '       onmouseup   = "' + (!item.disabled ? "jQuery(this).removeClass('down');" : "") + '"'+
                             '>'+
-                                    img +
+                                    (img || '') +
                                     (text !== ''
                                         ? '<div class="w2ui-tb-text w2ui-tb-caption" nowrap="nowrap" style="'+ (item.style ? item.style : '') +'">'+ w2utils.lang(text) +'</div>'
                                         : ''
@@ -802,6 +802,21 @@
                     html = '<td id="' + this.getElementId(it) + '"' + attribs + ' valign="middle">' + html + '</td>';
             }
             return html;
+        },
+
+        getIconHtml: function (icon) {
+            if (typeof icon == 'object') {
+                switch (icon.type) {
+                    default:
+                    case 'name':
+                        icon = icon.value;
+                        break;
+                    case 'url': return '<img class="icon" src="' + icon.value + '">';
+                    case 'class': return '<div class="w2ui-tb-image w2ui-icon ' + icon.value + '"></div>';
+                    case 'html': return icon.value;
+                }
+            }
+            return '<div class="w2ui-tb-image"><span class="' + icon + '"></span></div>';
         },
 
         tooltipShow: function (id, event, forceRefresh) {
