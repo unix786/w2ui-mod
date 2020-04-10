@@ -2362,6 +2362,7 @@
                 name    : overlayName,
                 left    : -10,
                 'class' : 'w2ui-grid-searches',
+                keepOnParentPosChange: this.last.isTouchOrMobile,
                 onShow  : function () {
                     obj.initSearches();
                     $('#w2ui-overlay-'+ overlayName + ' .w2ui-grid-searches').data('grid-name', obj.name);
@@ -2456,12 +2457,19 @@
                     '  <label>' + (s.label || '') + '</label>' +
                     '</div>';
             }
+            this.clearFocus();
             $(button).w2overlay({
                 html: html,
                 name: this.getSearchSelectColumnOverlayName(),
                 class: 'w2ui-grid-searches-column-select',
                 keepOnParentPosChange: true // This overlay must stay open and in one place as changes to the parent are being made.
             });
+        },
+
+        clearFocus: function () {
+            //https://stackoverflow.com/a/2520670/5050045
+            if (document.activeElement && document.activeElement != document)
+                document.activeElement.blur();
         },
 
         ensureClosedSearchSelectColumns: function () {
