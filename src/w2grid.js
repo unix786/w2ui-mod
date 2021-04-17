@@ -287,10 +287,10 @@
         }
         // register new object
         w2ui[this.name] = this;
+
         // init toolbar
         this.initToolbar();
         this.updateToolbar();
-
     }
 
     function MinorError(message) {
@@ -347,7 +347,6 @@
         url          : '',
         limit        : 100,
         offset       : 0,        // how many records to skip (for infinite scroll) when pulling from server
-        routeData    : {},       // data for dynamic routes
         /**Gets repopulated in method "search".
          * http://w2ui.com/web/docs/1.5/w2grid.searchData
          */
@@ -356,8 +355,8 @@
         quickFind: null,
         /** Remaps searchData fields (changes one name to another) for data requests. */
         searchMap: null,
+        routeData    : {},       // data for dynamic routes
         postData     : {},
-        routeData    : {},
         httpHeaders  : {},
         /** http://w2ui.com/web/docs/1.5/w2grid.show */
         show: {

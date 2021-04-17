@@ -2346,15 +2346,15 @@ event: {
             } else {
                 tag.tmp.originalCSS = '';
                 if ($(tag.attachedTo).length > 0) tag.tmp.originalCSS = $(tag.attachedTo)[0].style.cssText;
-                    var tagStyles = 'white-space: nowrap;'
-                    if (tag.options.maxWidth && w2utils.getStrWidth(text) > tag.options.maxWidth) {
-                        tagStyles = 'width: '+ tag.options.maxWidth + 'px'
-                    }
+                var tagStyles = 'white-space: nowrap;'
+                if (tag.options.maxWidth && w2utils.getStrWidth(text) > tag.options.maxWidth) {
+                    tagStyles = 'width: '+ tag.options.maxWidth + 'px'
+                }
                 // insert
                 $('body').append(
                     '<div onclick="event.stopPropagation()" style="display: none;" id="w2ui-tag-'+ tag.id +'" '+
                     '       class="w2ui-tag '+ ($(tag.attachedTo).parents('.w2ui-popup, .w2ui-overlay-popup, .w2ui-message').length > 0 ? 'w2ui-tag-popup' : '') + '">'+
-                        '   <div style="margin: -2px 0px 0px -2px; '+ tagStyles +'">'+
+                    '   <div style="margin: -2px 0px 0px -2px; '+ tagStyles +'">'+
                     '      <div class="w2ui-tag-body '+ tag.options.className +'" style="'+ (tag.options.style || '') +'">'+ text +'</div>'+
                     '   </div>' +
                     '</div>');
@@ -2381,7 +2381,6 @@ event: {
                     .off('.w2tag')
                     .css(tag.options.css)
                     .addClass(tag.options.inputClass);
-
 
                 if (tag.options.hideOnKeyPress) {
                     $(tag.attachedTo).on('keypress.w2tag', tag.hide);
