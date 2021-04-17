@@ -54,10 +54,10 @@
                 if (object.get(w2panels[p1]) != null) continue;
                 object.panels.push($.extend(true, {}, w2layout.prototype.panel, { type: w2panels[p1], hidden: (w2panels[p1] !== 'main'), size: 50 }));
             }
+            w2ui[object.name] = object;
             if ($(this).length > 0) {
                 object.render($(this)[0]);
             }
-            w2ui[object.name] = object;
             return object;
 
         } else {
@@ -215,6 +215,8 @@
                             div1.remove();
                             div2.removeClass('new-panel');
                             div2.css('overflow', p.overflow);
+                            // make sure only one content left
+                            $(pname + '> .w2ui-panel-content').slice(1).remove()
                             // IE Hack
                             obj.resize();
                             if (window.navigator.userAgent.indexOf('MSIE') != -1) setTimeout(function () { obj.resize(); }, 100);
@@ -273,14 +275,14 @@
             var obj = this;
             if (panel == 'css') {
                 $.get(url, function (data, status, xhr) { // should always be $.get as it is template
-                    obj.content(panel, xhr.responseText);
+                    obj.html(panel, xhr.responseText);
                     if (onLoad) onLoad();
                 });
                 return true;
             }
             if (this.get(panel) != null) {
                 $.get(url, function (data, status, xhr) { // should always be $.get as it is template
-                    obj.content(panel, xhr.responseText, transition);
+                    obj.html(panel, xhr.responseText, transition);
                     if (onLoad) onLoad();
                     // IE Hack
                     obj.resize();
@@ -436,6 +438,7 @@
                 } else if (pan.toolbar != null) {
                     pan.toolbar.refresh();
                 }
+                toolbar.owner = this;
                 this.showToolbar(panel);
                 this.refresh(panel);
             } else {
@@ -517,13 +520,17 @@
             function initEvents() {
                 obj.tmp.events = {
                     resize : function (event) {
-                        w2ui[obj.name].resize();
+                        if (w2ui[obj.name] == null) {
+                            $(window).off('resize.w2ui-'+ obj.name);
+                        } else {
+                            w2ui[obj.name].resize();
+                        }
                     },
                     resizeStart : resizeStart,
                     mouseMove   : resizeMove,
                     mouseUp     : resizeStop
                 };
-                $(window).on('resize', obj.tmp.events.resize);
+                $(window).on('resize.w2ui-'+ obj.name, obj.tmp.events.resize);
             }
 
             function resizeStart(type, evnt) {

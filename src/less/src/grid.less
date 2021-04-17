@@ -18,6 +18,9 @@
 
     .w2ui-grid-header {
         position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
         border-bottom: @grid-header-border-bottom !important;
         height: 28px;
         overflow: hidden;
@@ -117,7 +120,7 @@
         }
 
         div.w2ui-input {
-            .user-select(tex);
+            .user-select(text);
             pointer-events: auto;
             background-color: white;
             padding: 4px 2px;
@@ -225,16 +228,21 @@
             }
 
             .w2ui-load-more {
-                border-top: @grid-row-border-right;
                 cursor: pointer;
+                background-color: @grid-row-number-background-color;
+                border-right: @grid-row-border-right;
+                height: 43px;
                 > div {
                     text-align: center;
                     color: @grid-row-number-color;
                     background-color: @grid-row-number-background-color;
                     padding: 10px 0px 15px 0px;
-                    border-top: 1px solid @grid-background-color;
+                    height: 43px;
+                    border-top: 1px dashed #D6D5D7;
+                    border-bottom: 1px dashed #D6D5D7;
+                    font-size: 12px;
                     &:hover {
-                        color: @grid-row-hover-color;
+                        color: #438ba2;
                         background-color: @grid-row-hover-background-color;
                     }
                 }
@@ -338,6 +346,21 @@
                         text-align: center;
                     }
 
+                    .w2ui-clipboard-copy {
+                        float: right;
+                        margin-top: -15px;
+                        width: 20px;
+                        height: 16px;
+                        padding: 0px;
+                        text-align: center;
+                        cursor: pointer;
+                        font-size: 13px;
+                        color: #8d98a7;
+                        &:hover {
+                            color: #545961;
+                        }
+                    }
+
                     & > div {
                         padding: 3px 3px 3px 3px;
                         overflow: hidden;
@@ -399,6 +422,18 @@
                     padding: 0px 0px;
                     text-align: center;
                     font-weight: bold;
+                }
+            }
+
+            .w2ui-col-order {
+                width: 26px;
+                &.w2ui-grid-data div {
+                    cursor: move;
+                    height: 18px;
+                    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHN0eWxlPSJmaWxsOiAjYWFhOyIgeD0iMCIgeT0iNCIgaGVpZ2h0PSIzIiB3aWR0aD0iMTYiPjwvcmVjdD4KICA8cmVjdCBzdHlsZT0iZmlsbDogI2FhYTsiIHg9IjAiIHk9IjkiIGhlaWdodD0iMyIgd2lkdGg9IjE2Ij48L3JlY3Q+Cjwvc3ZnPg==");
+                    background-position: 5px 2px;
+                    background-size: 14px 12px;
+                    background-repeat: no-repeat;
                 }
             }
 
@@ -516,6 +551,9 @@
 
     .w2ui-grid-footer {
         position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
         margin: 0px;
         padding: 0px;
         text-align: center;
@@ -729,7 +767,7 @@
         border-collapse: border-collapse;
         tr {
             height: 27px;
-            &:hover {
+            &:hover, &.w2ui-selected {
                 background-color: @grid-row-selected-background-color;
             }
             td:nth-child(1) {
@@ -750,7 +788,7 @@
     table {
         border-spacing: 0px;
         border-collapse: border-collapse;
-        tr:hover {
+        tr:hover, tr.w2ui-selected {
             background-color: @grid-row-selected-background-color;
         }
         td {

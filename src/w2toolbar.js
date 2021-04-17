@@ -24,6 +24,9 @@
 *   - item.tooltip - can be a function
 *   - item.color
 *   - item.options
+*   - event.item.get - finds selected item
+*   - item.keepOpen, drop down will not close
+*   - item.type = 'new-line'
 *
 ************************************************************************/
 
@@ -78,11 +81,12 @@
                     }
                 }
             }
+            // register new object
+            w2ui[object.name] = object;
+            // render
             if ($(this).length !== 0) {
                 object.render($(this)[0]);
             }
-            // register new object
-            w2ui[object.name] = object;
             return object;
 
         } else {
@@ -215,10 +219,19 @@
                 var it = this.items[i2];
                 // find a menu item
                 if (['menu', 'menu-radio', 'menu-check'].indexOf(it.type) != -1 && tmp.length == 2 && it.id == tmp[0]) {
-                    for (var i = 0; i < it.items.length; i++) {
-                        var item = it.items[i];
+                    var subItems = it.items
+                    if (typeof subItems == 'function') subItems = subItems(this);
+                    for (var i = 0; i < subItems.length; i++) {
+                        var item = subItems[i];
                         if (item.id == tmp[1] || (item.id == null && item.text == tmp[1])) {
                             if (returnIndex == true) return i; else return item;
+                        }
+                        if (Array.isArray(item.items)) {
+                            for (var j = 0; j < item.items.length; j++) {
+                                if (item.items[j].id == tmp[1] || (item.items[j].id == null && item.items[j].text == tmp[1])) {
+                                    if (returnIndex == true) return i; else return item.items[j];
+                    }
+                            }
                         }
                     }
                 } else if (it.id == tmp[0]) {
@@ -315,7 +328,7 @@
                     // hide overlay
                     setTimeout(function () {
                         var el = $('#' + obj.getElementId(it));
-                        el.w2overlay({ name: obj.name });
+                        el.w2overlay({ name: obj.name, data: { "tb-item": it.id }});
                     }, 1);
                 }
                 items++;
@@ -372,7 +385,7 @@
                         setTimeout(function () {
                             // hide overlay
                             var el = $('#' + this.getElementId(it));
-                            el.w2overlay({ name: obj.name });
+                            el.w2overlay({ name: obj.name, data: { "tb-item": it.id }});
                             // uncheck
                             it.checked = false;
                             obj.refresh(it.id);
@@ -387,7 +400,7 @@
                             var left = (el.width() - 50) / 2;
                             if (left > 19) left = 19;
                             if (it.type == 'drop') {
-                                el.w2overlay(it.html, $.extend({ name: obj.name, left: left, top: 3 }, it.overlay, {
+                                el.w2overlay(it.html, $.extend({ name: obj.name, left: left, top: 3, data: { "tb-item": it.id } }, it.overlay, {
                                     onHide: function (event) {
                                         hideDrop();
                                     }
@@ -407,8 +420,11 @@
                                         if ($.isArray(it.selected) && it.selected.indexOf(item.id) != -1) item.checked = true; else item.checked = false;
                                     });
                                 }
-                                el.w2menu($.extend({ name: obj.name, items: items, left: left, top: 3 }, it.overlay, {
+                                el.w2menu($.extend({ name: obj.name, items: items, left: left, top: 3, data: { "tb-item": it.id } }, it.overlay, {
                                     type: menuType,
+                                    remove: function (event) {
+                                        obj.menuClick({ name: obj.name, remove: true, item: it, subItem: event.item, originalEvent: event.originalEvent, keepOpen: event.keepOpen });
+                                    },
                                     select: function (event) {
                                         obj.menuClick({ name: obj.name, item: it, subItem: event.item, originalEvent: event.originalEvent, keepOpen: event.keepOpen });
                                     },
@@ -543,6 +559,11 @@
                     this.beforeRender(it);
                     if (it.type == 'spacer') {
                         html += '<td width="100%" id="' + getItemId(it) +'" align="right"></td>';
+                } else if (it.type == 'new-line') {
+                    html += '<td width="100%"></td></tr></tbody></table>'
+                         + '<div class="w2ui-toolbar-new-line"></div>'
+                         + '<table cellspacing="0" cellpadding="0" width="100%"><tbody><tr>';
+
                     } else {
                         html += '<td id="' + this.getElementId(it) +'"'+ (it.hidden ? ' style="display: none"' : '') +' '+
                                 '    class="'+ (it.disabled ? 'disabled' : '') +'" valign="middle">'+
@@ -620,8 +641,17 @@
                 }
             } else {
                 // Close any associated overlay if checked state is gone.
-                if (['menu', 'menu-radio', 'menu-check', 'drop', 'color', 'text-color'].indexOf(it.type) != -1 && it.checked == false) {
-                    if ($('#w2ui-overlay-'+ this.name).length > 0) $('#w2ui-overlay-'+ this.name)[0].hide();
+                if (['menu', 'menu-radio', 'menu-check', 'drop', 'color', 'text-color'].indexOf(it.type) != -1) {
+                    var drop = $('#w2ui-overlay-'+ this.name);
+                    if (drop.length > 0) {
+                        if (it.checked == false) {
+                            drop[0].hide();
+                        } else {
+                            if (['menu', 'menu-radio', 'menu-check'].indexOf(it.type) != -1) {
+                                drop.w2menu('refresh', { items: it.items });
+                }
+                        }
+                    }
                 }
                 // refresh
                 el.replaceWith(html);
@@ -684,6 +714,15 @@
             if (item.text == null) item.text = '';
             if (item.tooltip == null && item.hint != null) item.tooltip = item.hint; // for backward compatibility
             if (item.tooltip == null) item.tooltip = '';
+            if (typeof item.get !== 'function' && (Array.isArray(item.items) || typeof item.items == 'function')) {
+                item.get = function (id) {
+                    var tmp = item.items;
+                    if (typeof tmp == 'function') tmp = item.items(item);
+                    return tmp.find(function (it) {
+                        if (it.id == id) return true; else return false
+                    })
+                }
+            }
             var text = (typeof item.text == 'function' ? item.text.call(this, item) : item.text);
             var img;
             if (item.icon) img = this.getIconHtml((typeof item.icon == 'function' ? item.icon.call(this, item) : item.icon));
@@ -820,17 +859,26 @@
             var obj = this;
             if (event.item && !event.item.disabled) {
                 // event before
-                var edata = this.trigger({ phase: 'before', type: 'click', target: event.item.id + ':' + event.subItem.id, item: event.item,
+                var edata = this.trigger({ phase: 'before', type: (event.remove !== true ? 'click' : 'remove'), target: event.item.id + ':' + event.subItem.id, item: event.item,
                     subItem: event.subItem, originalEvent: event.originalEvent });
                 if (edata.isCancelled === true) return;
 
                 // route processing
                 var it   = event.subItem;
                 var item = this.get(event.item.id);
+                var items = item.items;
+                if (typeof items == 'function') items = item.items();
                 if (item.type == 'menu-radio') {
                     item.selected = it.id;
-                    if (Array.isArray(event.item.items)) {
-                        event.item.items.forEach(function (item) { item.checked = false; });
+                    if (Array.isArray(items)) {
+                        items.forEach(function (item) {
+                            if (item.checked === true) delete item.checked;
+                            if (Array.isArray(item.items)) {
+                                item.items.forEach(function (item) {
+                                    if (item.checked === true) delete item.checked;
+                                })
+                    }
+                        });
                     }
                     it.checked = true;
                 }
@@ -845,10 +893,13 @@
                             item.selected.splice(ind, 1);
                             it.checked = false;
                         }
+                    } else if (it.group === false) {
+                        // if group is false, then it is not part of checkboxes
                     } else {
-                        // find all items in the same group
                         var unchecked = [];
-                        item.items.forEach(function (sub) {
+                        // recursive
+                        (function checkNested(items) {
+                            items.forEach(function (sub) {
                             if (sub.group === it.group) {
                                 var ind = item.selected.indexOf(sub.id);
                                 if (ind != -1) {
@@ -856,7 +907,9 @@
                                     item.selected.splice(ind, 1);
                                 }
                             }
+                                if (Array.isArray(sub.items)) checkNested(sub.items)
                         });
+                        })(items);
                         var ind = item.selected.indexOf(it.id);
                         if (ind == -1) {
                             item.selected.push(it.id);

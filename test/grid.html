@@ -31,7 +31,7 @@ jQuery(function () {
         //     remove : 'grid3.json',
         //     save   : 'save'
         // },
-        columnTooltip: 'top',
+        // columnTooltip: 'top',
         reorderRows: true,
         //reorderColumns: true,
         show: {
@@ -41,6 +41,7 @@ jQuery(function () {
             emptyRecords: true,
             columnHeaders: true,
             searchAll: true,
+            searchHiddenMsg: true,
             searchVisible: true,
             selectColumn: true,
             expandColumn: false,
@@ -51,7 +52,12 @@ jQuery(function () {
             toolbarSave: true
         },
         menu: [
-            { id: 1, text: 'Select Item', icon: 'fa fa-star' },
+            { id: 1, text: 'Select Item', icon: 'fa fa-star',
+                items: [
+                    { id: 'item1', text: 'Select Item', icon: 'fa fa-star' },
+                    { id: 'item2', text: 'Select Item', icon: 'fa fa-star' }
+                ]
+            },
             { id: 2, text: 'View Item', icon: 'fa fa-camera' },
             { id: 4, text: 'Delete Item', icon: 'fa fa-minus' }
         ],
@@ -100,21 +106,24 @@ jQuery(function () {
 
         // possible values: text, alphanumeric, int, float, money, currency, percent, hex, list, combo, enum, select, date, time
         searches: [
-            { field: 'personid', label: 'ID', type: 'int', value: [1, 10], operator: 'more' },
+            { field: 'personid', label: 'ID', type: 'int' },
             { field: 'color', label: 'Color', type: 'color' },
             { field: 'email', label: 'Email', type: 'text', operator1: 'null', operators1: ['is', 'null', 'not null'] },
             { field: 'fname', label: 'First Name 1', type: 'text' },
-            { field: 'fname', label: 'First Name 2', type: 'list', options: { items: ['Cuban', 'Rene'] } },
+            { field: 'fname-full', label: 'First Name 2', type: 'list', options: { items: ['Cuban', 'Rene'] } },
             { field: 'lname', label: 'Last Name', type: 'enum', options: { items: ['Cuban', 'Rene'] }}
         ],
+        searchMap: {
+            // color: 'personid',
+            // 'fname-full': 'fname'
+        },
         // sortData: [ { field: 'personid', direction: 'asc' } ],
-        columnGroups1: [
-            { text: '', span: 1 },
-            { text: '', span: 1 },
-            { text: 'General Information', span: 2},
-            { text: 'Email', span: 1, master: true },
-            { text: 'Text', span: 1, master: true },
-            { text: 'Important Dates', span: 3 }
+        columnGroups: [
+            { text: '11', text1: function(col) { return (new Date()).getTime() }, span: 3 },
+            { text: 'General Information', span: 4 },
+            // { text: 'Email', span: 1, master: false },
+            // { text: 'Text', span: 1, master: false },
+            // { text: 'Important Dates', span: 3 }
         ],
         columns: [
             { field: 'personid', text: 'ID', size: '160px', sortable: true, resizable: true, frozen1: true, tooltip: 'User ID', info: true },
@@ -130,6 +139,7 @@ jQuery(function () {
                     }
                 },
             },
+            { field: 'personid', text: 'ID', size: '50px' },
             { field: 'personid2', text: 'ID2', size: '60px', sortable: true, resizable: true, tooltip: 'Person ID',
                 render: function (record) {
                     if (record.changes && record.changes['personid']) {
@@ -142,9 +152,12 @@ jQuery(function () {
                 hidden: true
             },
             { field: 'text', text: 'Random Text', size: '100px', hidden: true, sortable: true, searchable: true, resizable: true },
-            { field: 'fname', text: 'First Name', size: '100px', sortable: true, searchable1: true, resizable: true, editable: { type: 'text' },
+            { field: 'fname', text: 'First Name', size: '100px', sortable: true,
+                searchable1: true, resizable: true, editable: { type: 'text' },
                 tooltip: 'Full Name', hidden1: true, info: true },
             { field: 'lname', text: 'Last Name', size: '100px', sortable: true, resizable: true,
+                tooltip: 'some tooltip',
+                clipboardCopy: true,
                 info: {
                     icon: 'fa fa-user',
                     showEmpty: true,
@@ -267,7 +280,7 @@ jQuery(function () {
         //event.preventDefault();
     });
     var fname = ['Vitali', 'Katsia', 'John', 'Peter', 'Sue', 'Olivia', 'Thomas', 'Sergei', 'Snehal', 'Avinash', 'Divia'];
-    var lname = ['Peterson', 'Rene', 'Johnson', 'Cuban', 'Twist', 'Sidorov', 'Vasiliev', 'Yadav', 'Vaishnav'];
+    var lname = ['Peterson', 'Rene', 'Johnson', 'Cuban', 'Twist', 'Sidorov', 'Vasiliev', 'Yadav', 'Vaishnavliasoddfjgj'];
     // add 10k records
     for (var i = 0; i < 5000; i++) {
         var t  = ((new Date()).getTime() - Math.floor(Math.random() * 1000000000));
@@ -288,8 +301,8 @@ jQuery(function () {
         });
     }
 
-    w2ui.grid.records[0].w2ui = { children: w2ui.grid.records.splice(10, 5), colspan1: { personid: 2 }, hideCheckBox: true };
-    w2ui.grid.records[2].w2ui = { children: w2ui.grid.records.splice(10, 3), colspan1: { personid: 5 }, hideCheckBox: true };
+    // w2ui.grid.records[0].w2ui = { children: w2ui.grid.records.splice(10, 5), colspan1: { personid: 2 }, hideCheckBox: true };
+    // w2ui.grid.records[2].w2ui = { children: w2ui.grid.records.splice(10, 3), colspan1: { personid: 5 }, hideCheckBox: true };
     // w2ui.grid.records[6].w2ui = { children: w2ui.grid.records.splice(10, 10), colspan: { personid: 7 } };
     // w2ui.grid.records[6].w2ui.children[1].w2ui = { children: w2ui.grid.records.splice(10, 4) };
     // w2ui.grid.records[6].w2ui.children[1].w2ui.children[2].w2ui = { children: w2ui.grid.records.splice(10, 4) };

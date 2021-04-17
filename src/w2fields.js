@@ -21,6 +21,8 @@
 *   - ENUM, LIST: should support wild chars
 *   - add selection of predefined times (used for appointments)
 *   - options.items - can be an array
+*   - options.msgSearch - message to search for user
+*   - options.msgNoItems - can be a function
 *
 ************************************************************************/
 
@@ -215,7 +217,8 @@
                         advanced    : null, // open advanced by default
                         transparent : true
                     };
-                    $.extend(options, defaults);
+                    this.options = $.extend(true, {}, defaults, options);
+                    options = this.options; // since object is re-created, need to re-assign
                     this.addPrefix();    // only will add if needed
                     this.addSuffix();    // only will add if needed
                     // additional checks
@@ -337,7 +340,11 @@
                     this.addPrefix();
                     this.addSuffix();
                     setTimeout(function () { obj.refresh(); }, 10); // need this for icon refresh
-                    $(this.el).attr('autocomplete', 'off');
+                    $(this.el)
+                        .attr('autocapitalize', 'off')
+                        .attr('autocomplete', 'off')
+                        .attr('autocorrect', 'off')
+                        .attr('spellcheck', 'false')
                     if (options.selected.text != null) $(this.el).val(options.selected.text);
                     break;
 
@@ -485,10 +492,10 @@
                 if (this.type !== 'list' && append) {
                     if ($(this.el).data('selected') == null) $(this.el).data('selected', []);
                     $(this.el).data('selected').push(val);
-                    $(this.el).change();
+                    $(this.el).trigger('input').change();
                 } else {
                     var it = (this.type === 'enum' ? [val] : val);
-                    $(this.el).data('selected', it).change();
+                    $(this.el).data('selected', it).trigger('input').change();
                 }
                 this.refresh();
             } else {
@@ -503,10 +510,10 @@
                     if (this.type !== 'list' && append) {
                         if ($(this.el).data('selected') == null) $(this.el).data('selected', []);
                         $(this.el).data('selected').push(items[ind]);
-                        $(this.el).change();
+                        $(this.el).trigger('input').change();
                     } else {
                         var it = (this.type === 'enum' ? [items[ind]] : items[ind]);
-                        $(this.el).data('selected', it).change();
+                        $(this.el).data('selected', it).trigger('input').change();
                     }
                     this.refresh();
                     return true;
@@ -787,7 +794,7 @@
                 if (inpHeight > cntHeight) cntHeight = inpHeight;
                 $(div).css({ 'height': cntHeight + 'px', overflow: (cntHeight == options.maxHeight ? 'auto' : 'hidden') });
                 if (cntHeight < options.maxHeight) $(div).prop('scrollTop', 0);
-                $(this.el).css({ 'height' : (cntHeight + 2) + 'px' });
+                $(this.el).css({ 'height' : (cntHeight + 0) + 'px' });
                 // update size
                 if (obj.type === 'enum') {
                     var tmp = obj.helpers.multi.find('input');
@@ -896,7 +903,7 @@
                 var new_val = this.format(this.clean($(this.el).val()));
                 // if was modified
                 if (val !== '' && val != new_val) {
-                    $(this.el).val(new_val).change();
+                    $(this.el).val(new_val).trigger('input').change();
                     // cancel event
                     event.stopPropagation();
                     event.preventDefault();
@@ -908,10 +915,11 @@
                 var color = $(this.el).val();
                 if (color.substr(0, 3).toLowerCase() !== 'rgb') {
                     color = '#' + color;
-                    if ($(this.el).val().length !== 6 && $(this.el).val().length !== 3) color = '';
+                    var len = $(this.el).val().length
+                    if (len !== 8 && len !== 6 && len !== 3) color = '';
                 }
                 $(this.el).next().find('div').css('background-color', color);
-                if ($(this.el).is(':focus') && $(this.el).data('skipInit') !== true) {
+                if ($(this.el).hasClass('has-focus') && $(this.el).data('skipInit') !== true) {
                     this.updateOverlay();
                 }
             }
@@ -926,9 +934,9 @@
                 // convert linux timestamps
                 var tmp = parseInt(obj.el.value);
                 if (w2utils.isInt(obj.el.value) && tmp > 3000) {
-                    if (this.type === 'time') $(obj.el).val(w2utils.formatTime(new Date(tmp), options.format)).change();
-                    if (this.type === 'date') $(obj.el).val(w2utils.formatDate(new Date(tmp), options.format)).change();
-                    if (this.type === 'datetime') $(obj.el).val(w2utils.formatDateTime(new Date(tmp), options.format)).change();
+                    if (this.type === 'time') $(obj.el).val(w2utils.formatTime(new Date(tmp), options.format)).trigger('input').change();
+                    if (this.type === 'date') $(obj.el).val(w2utils.formatDate(new Date(tmp), options.format)).trigger('input').change();
+                    if (this.type === 'datetime') $(obj.el).val(w2utils.formatDateTime(new Date(tmp), options.format)).trigger('input').change();
                 }
             }
         },
@@ -937,7 +945,7 @@
             event.stopPropagation();
             // lists
             if (['list', 'combo', 'enum'].indexOf(this.type) !== -1) {
-                if (!$(this.el).is(':focus')) this.focus(event);
+                if (!$(this.el).hasClass('has-focus')) this.focus(event);
             }
             // other fields with drops
             if (['date', 'time', 'color', 'datetime'].indexOf(this.type) !== -1) {
@@ -946,7 +954,8 @@
         },
 
         focus: function (event) {
-            var obj     = this;
+            var obj = this;
+            $(obj.el).addClass('has-focus')
             // color, date, time
             if (['color', 'date', 'time', 'datetime'].indexOf(obj.type) !== -1) {
                 if ($(obj.el).prop('readonly') || $(obj.el).prop('disabled')) return;
@@ -959,7 +968,7 @@
                 if ($("#w2ui-overlay").length > 0) $('#w2ui-overlay')[0].hide();
                 obj.resize();
                 setTimeout(function () {
-                    if (obj.type === 'list' && $(obj.el).is(':focus')) {
+                    if (obj.type === 'list' && $(obj.el).is(':focus')) { // need to stay .is(':focus')
                         $(obj.helpers.focus).find('input').focus();
                         return;
                     }
@@ -973,15 +982,16 @@
             }
             // file
             if (obj.type === 'file') {
-                $(obj.helpers.multi).css({ 'outline': 'auto 5px #7DB4F3', 'outline-offset': '-2px' });
+                $(obj.helpers.multi).css({ 'outline': 'auto 5px #7DB4F3', 'outline-offset': '2px' });
             }
         },
 
         blur: function (event) {
-            var obj     = this;
+            var obj = this;
             var options = obj.options;
-            var val     = $(obj.el).val().trim();
+            var val = $(obj.el).val().trim();
             var $overlay = $("#w2ui-overlay");
+            $(obj.el).removeClass('has-focus')
 
             // hide overlay
             if (['color', 'date', 'time', 'list', 'combo', 'enum', 'datetime'].indexOf(obj.type) !== -1) {
@@ -998,7 +1008,7 @@
             }
             if (['int', 'float', 'money', 'currency', 'percent'].indexOf(obj.type) !== -1) {
                 if (val !== '' && !obj.checkType(val)) {
-                    $(obj.el).val('').change();
+                    $(obj.el).val('').trigger('input').change();
                     if (options.silent === false) {
                         $(obj.el).w2tag('Not a valid number');
                         setTimeout(function () { $(obj.el).w2tag(''); }, 3000);
@@ -1009,28 +1019,28 @@
             if (['date', 'time', 'datetime'].indexOf(obj.type) !== -1) {
                 // check if in range
                 if (val !== '' && !obj.inRange(obj.el.value)) {
-                    $(obj.el).val('').removeData('selected').change();
+                    $(obj.el).val('').removeData('selected').trigger('input').change();
                     if (options.silent === false) {
                         $(obj.el).w2tag('Not in range');
                         setTimeout(function () { $(obj.el).w2tag(''); }, 3000);
                     }
                 } else {
                     if (obj.type === 'date' && val !== '' && !w2utils.isDate(obj.el.value, options.format)) {
-                        $(obj.el).val('').removeData('selected').change();
+                        $(obj.el).val('').removeData('selected').trigger('input').change();
                         if (options.silent === false) {
                             $(obj.el).w2tag('Not a valid date');
                             setTimeout(function () { $(obj.el).w2tag(''); }, 3000);
                         }
                     }
                     else if (obj.type === 'time' && val !== '' && !w2utils.isTime(obj.el.value)) {
-                        $(obj.el).val('').removeData('selected').change();
+                        $(obj.el).val('').removeData('selected').trigger('input').change();
                         if (options.silent === false) {
                             $(obj.el).w2tag('Not a valid time');
                             setTimeout(function () { $(obj.el).w2tag(''); }, 3000);
                         }
                     }
                     else if (obj.type === 'datetime' && val !== '' && !w2utils.isDateTime(obj.el.value, options.format)) {
-                        $(obj.el).val('').removeData('selected').change();
+                        $(obj.el).val('').removeData('selected').trigger('input').change();
                         if (options.silent === false) {
                             $(obj.el).w2tag('Not a valid date');
                             setTimeout(function () { $(obj.el).w2tag(''); }, 3000);
@@ -1082,12 +1092,14 @@
                 switch (key) {
                     case 38: // up
                         if (event.shiftKey) break; // no action if shift key is pressed
-                        $(obj.el).val((val + inc <= options.max || options.max == null ? Number((val + inc).toFixed(12)) : options.max)).change();
+                        var newValue = (val + inc <= options.max || options.max == null ? Number((val + inc).toFixed(12)) : options.max);
+                        $(obj.el).val(newValue).trigger('input').change();
                         cancel = true;
                         break;
                     case 40: // down
                         if (event.shiftKey) break; // no action if shift key is pressed
-                        $(obj.el).val((val - inc >= options.min || options.min == null ? Number((val - inc).toFixed(12)) : options.min)).change();
+                        var newValue = (val - inc >= options.min || options.min == null ? Number((val - inc).toFixed(12)) : options.min);
+                        $(obj.el).val(newValue).trigger('input').change();
                         cancel = true;
                         break;
                 }
@@ -1216,7 +1228,7 @@
                     }
                     if (obj.el.nav && dir != null) {
                         newColor = obj.el.nav(dir);
-                        $(obj.el).val(newColor).change();
+                        $(obj.el).val(newColor).trigger('input').change();
                         event.preventDefault();
                     }
                 }
@@ -1273,7 +1285,7 @@
                                 delete item.hidden;
                                 delete obj.tmp.force_open;
                                 selected.push(item);
-                                $(obj.el).change();
+                                $(obj.el).trigger('input').change();
                                 focus.val('').width(20);
                                 obj.refresh();
                                 // event after
@@ -1289,7 +1301,7 @@
                                     if (selected.length >= options.max && options.max > 0) selected.pop();
                                     delete obj.tmp.force_open;
                                     selected.push(item);
-                                    $(obj.el).change();
+                                    $(obj.el).trigger('input').change();
                                     focus.val('').width(20);
                                     obj.refresh();
                                 }
@@ -1297,8 +1309,8 @@
                                 obj.trigger($.extend(edata, { phase: 'after' }));
                             }
                         } else {
-                            if (item) $(obj.el).data('selected', item).val(item.text).change();
-                            if ($(obj.el).val() === '' && $(obj.el).data('selected')) $(obj.el).removeData('selected').val('').change();
+                            if (item) $(obj.el).data('selected', item).val(item.text).trigger('input').change();
+                            if ($(obj.el).val() === '' && $(obj.el).data('selected')) $(obj.el).removeData('selected').val('').trigger('input').change();
                             if (obj.type === 'list') {
                                 focus.val('');
                                 obj.refresh();
@@ -1324,25 +1336,25 @@
                             }
                         }
                         if (obj.type === 'list' && focus.val() === '') {
-                            $(obj.el).data('selected', {}).change();
+                            $(obj.el).data('selected', {}).trigger('input').change();
                             obj.refresh();
                         }
                         break;
                     case 38: // up
                         options.index = w2utils.isInt(options.index) ? parseInt(options.index) : 0;
                         options.index--;
-                        while (options.index > 0 && options.items[options.index].hidden) options.index--;
-                        if (options.index === 0 && options.items[options.index].hidden) {
-                            while (options.items[options.index] && options.items[options.index].hidden) options.index++;
+                        while (options.index > 0 && (options.items[options.index].hidden || options.items[options.index].disabled)) options.index--;
+                        if (options.index === 0 && (options.items[options.index].hidden || options.items[options.index].disabled)) {
+                            while (options.items[options.index] && (options.items[options.index].hidden || options.items[options.index].disabled)) options.index++;
                         }
                         indexOnly = true;
                         break;
                     case 40: // down
                         options.index = w2utils.isInt(options.index) ? parseInt(options.index) : -1;
                         options.index++;
-                        while (options.index < options.items.length-1 && options.items[options.index].hidden) options.index++;
-                        if (options.index == options.items.length-1 && options.items[options.index].hidden) {
-                            while (options.items[options.index] && options.items[options.index].hidden) options.index--;
+                        while (options.index < options.items.length-1 && (options.items[options.index].hidden || options.items[options.index].disabled)) options.index++;
+                        if (options.index == options.items.length-1 && (options.items[options.index].hidden || options.items[options.index].disabled)) {
+                            while (options.items[options.index] && (options.items[options.index].hidden || options.items[options.index].disabled)) options.index--;
                         }
                         // show overlay if not shown
                         if (focus.val() === '' && $('#w2ui-overlay').length === 0) {
@@ -1441,7 +1453,7 @@
                     (search.length < obj.tmp.xhr_search.length)
                 )) {
                 // empty list
-                if (obj.tmp.xhr) obj.tmp.xhr.abort();
+                if (obj.tmp.xhr) try { obj.tmp.xhr.abort(); } catch (e) {}
                 obj.tmp.xhr_loading = true;
                 obj.search();
                 // timeout
@@ -1518,19 +1530,24 @@
                                 if (Array.isArray(find_selected)) {
                                     sel = [];
                                     find_selected.forEach(function (find) {
+                                        var isFound = false
                                         options.items.forEach(function (item) {
-                                            if (item.id == find) sel.push($.extend(true, {}, item));
+                                            if (item.id == find || (find && find.id == item.id)) {
+                                                sel.push($.extend(true, {}, item));
+                                                isFound = true
+                                            }
                                         })
-                                    });
-
+                                        if (!isFound) sel.push(find)
+                                    })
                                 } else {
+                                    sel = find_selected;
                                     options.items.forEach(function (item) {
-                                        if (item.id == find_selected) {
+                                        if (item.id == find_selected || (find_selected && find_selected.id == item.id)) {
                                             sel = item
                                         }
                                     })
                                 }
-                                $(obj.el).data('selected', sel).removeData('find_selected').change();
+                                $(obj.el).data('selected', sel).removeData('find_selected').trigger('input').change();
                             }
                             obj.search();
                             // event after
@@ -1654,7 +1671,6 @@
                         onShow: function (event) {
                             // this needed for IE 11 compatibility
                             if (w2utils.isIE) {
-                                console.log("IE");
                                 $('.w2ui-calendar').on('mousedown', function (event) {
                                     var $tg = $(event.target);
                                     if ($tg.length === 1 && $tg[0].id === 'w2ui-jump-year') {
@@ -1775,7 +1791,6 @@
                         onShow: function (event) {
                             // this needed for IE 11 compatibility
                             if (w2utils.isIE) {
-                                console.log("IE");
                                 $('.w2ui-calendar').on('mousedown', function (event) {
                                     var $tg = $(event.target);
                                     if ($tg.length === 1 && $tg[0].id === 'w2ui-jump-year') {
@@ -1920,7 +1935,7 @@
                     }
                     input = $(this.helpers.focus).find('input');
                 }
-                if ($(input).is(':focus')) {
+                if ($(this.el).hasClass('has-focus')) {
                     if (options.openOnFocus === false && $(input).val() === '' && obj.tmp.force_open !== true) {
                         $().w2overlay();
                         return;
@@ -1934,14 +1949,35 @@
                     }
                     if ($(input).val() !== '') delete obj.tmp.force_open;
                     var msgNoItems = w2utils.lang('No matches');
-                    if (options.url != null && $(input).val().length < options.minLength && obj.tmp.emptySet !== true) msgNoItems = options.minLength + ' ' + w2utils.lang('letters or more...');
-                    if (options.url != null && $(input).val() === '' && obj.tmp.emptySet !== true) msgNoItems = w2utils.lang('Type to search...');
+                    if (options.url != null && String($(input).val()).length < options.minLength && obj.tmp.emptySet !== true) {
+                        msgNoItems = options.minLength + ' ' + w2utils.lang('letters or more...');
+                    }
+                    if (options.url != null && $(input).val() === '' && obj.tmp.emptySet !== true) {
+                        msgNoItems = w2utils.lang(options.msgSearch || 'Type to search...');
+                    }
                     if (options.url == null && options.items.length === 0) msgNoItems = w2utils.lang('Empty list');
                     if (options.msgNoItems != null) {
-                        msgNoItems = (typeof msgNoItems === 'function' ? msgNoItems(options) : options.msgNoItems);
+                        var eventData = {
+                            search: $(input).val(),
+                            options: $.extend(true, {}, options)
+                        }
+                        if (options.url) {
+                            eventData.remote = {
+                                url: options.url,
+                                empty: obj.tmp.emptySet ? true : false,
+                                error: obj.tmp.lastError,
+                                minLength: options.minLength
+                            }
+                        }
+                        msgNoItems = (typeof options.msgNoItems === 'function'
+                            ? options.msgNoItems(eventData)
+                            : options.msgNoItems)
                     }
                     if (obj.tmp.lastError) {
-                        msgNoItems = '<div style="white-space: normal; line-height: 1.3">' + obj.tmp.lastError + '</div>';
+                        msgNoItems = obj.tmp.lastError;
+                    }
+                    if (msgNoItems) {
+                        msgNoItems = '<div style="white-space: normal; line-height: 1.3">' + msgNoItems + '</div>';
                     }
 
                     var params = $.extend(true, {}, options, {
@@ -1965,7 +2001,15 @@
                                     $(obj.el).data('selected', selected).trigger('input').change();
                                     $(obj.helpers.multi).find('input').val('').width(20);
                                     obj.refresh();
-                                    if ($("#w2ui-overlay").length > 0) $('#w2ui-overlay')[0].hide();
+                                    if (event.keepOpen !== true) {
+                                        if ($("#w2ui-overlay").length > 0) $('#w2ui-overlay')[0].hide();
+                                    } else {
+                                        var ind;
+                                        params.items.forEach(function (item, i) { if (item.id == event.item.id) ind = i })
+                                        if (ind != null) params.items.splice(ind, 1)
+                                        params.selected = selected
+                                        $(el).w2menu('refresh', params);
+                                    }
                                     // event after
                                     obj.trigger($.extend(edata, { phase: 'after' }));
                                 }
@@ -2290,11 +2334,17 @@
             if (!isNaN(tabIndex) && tabIndex !== -1) obj.el._tabIndex = tabIndex;
             if (obj.el._tabIndex) tabIndex = obj.el._tabIndex;
             if (tabIndex == null) tabIndex = -1;
+            if (isNaN(tabIndex)) tabIndex = 0;
+            // if there is id, add to search with "_search"
+            var searchId = '';
+            if ($(obj.el).attr('id') != null) {
+                searchId = 'id="' + $(obj.el).attr('id') + '_search"'
+            }
             // build helper
             var html =
                 '<div class="w2ui-field-helper">'+
                 '    <div class="w2ui-icon icon-search" style="opacity: 0; display: none"></div>'+
-                '    <input type="text" autocomplete="off" tabIndex="'+ tabIndex +'"/>'+
+                '    <input '+ searchId +' type="text" tabIndex="'+ tabIndex +'" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"/>'+
                 '</div>';
             $(obj.el).attr('tabindex', -1).before(html);
             var helper = $(obj.el).prev();
@@ -2327,7 +2377,7 @@
                 })
                 .on('focus', function (event) {
                     pholder = $(obj.el).attr('placeholder');
-                    $(obj.el).css({ 'outline': 'auto 5px #7DB4F3', 'outline-offset': '-2px' });
+                    $(obj.el).css({ 'outline': 'auto 5px #7DB4F3', 'outline-offset': '2px' });
                     $(this).val('');
                     $(obj.el).triggerHandler('focus');
                     if (event.stopPropagation) event.stopPropagation(); else event.cancelBubble = true;
@@ -2370,18 +2420,24 @@
                                     - parseInt($(obj.el).css('margin-left'), 10)
                                     - parseInt($(obj.el).css('margin-right'), 10))
                                     + 'px;';
+            // if there is id, add to search with "_search"
+            var searchId = '';
+            if ($(obj.el).attr('id') != null) {
+                searchId = 'id="' + $(obj.el).attr('id') + '_search" '
+            }
             if (obj.type === 'enum') {
                 // remember original tabindex
                 var tabIndex = $(obj.el).attr('tabIndex');
                 if (tabIndex && tabIndex !== -1) obj.el._tabIndex = tabIndex;
                 if (obj.el._tabIndex) tabIndex = obj.el._tabIndex;
-                if (tabIndex == null) tabIndex = -1;
+                if (tabIndex == null) tabIndex = 0; // default tabindex
 
                 html =  '<div class="w2ui-field-helper w2ui-list" style="'+ margin + '; box-sizing: border-box">'+
                         '    <div style="padding: 0px; margin: 0px; display: inline-block" class="w2ui-multi-items">'+
                         '    <ul>'+
                         '        <li style="padding-left: 0px; padding-right: 0px" class="nomouse">'+
-                        '            <input type="text" style="width: 20px; margin: -3px 0 0; padding: 2px 0; border-color: white" autocomplete="off"' + ($(obj.el).prop('readonly') ? ' readonly="readonly"': '') + ($(obj.el).prop('disabled') ? ' disabled="disabled"': '') + ' tabindex="'+ tabIndex +'"/>'+
+                        '            <input '+ searchId +' type="text" style="width: 20px; margin: -3px 0 0; padding: 2px 0; border-color: white" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"' +
+                            ($(obj.el).prop('readonly') ? ' readonly="readonly"': '') + ($(obj.el).prop('disabled') ? ' disabled="disabled"': '') + ' tabindex="'+ tabIndex +'"/>'+
                         '        </li>'+
                         '    </ul>'+
                         '    </div>'+
@@ -2390,7 +2446,7 @@
             if (obj.type === 'file') {
                 html =  '<div class="w2ui-field-helper w2ui-list" style="'+ margin + '; box-sizing: border-box">'+
                         '   <div style="position: absolute; left: 0px; right: 0px; top: 0px; bottom: 0px;">'+
-                        '       <input class="file-input" type="file" style="width: 100%; height: 100%; opacity: 0;" name="attachment" tabindex="-1"' + (obj.options.max !== 1 ? ' multiple="multiple"': '') + ($(obj.el).prop('readonly') ? ' readonly="readonly"': '') + ($(obj.el).prop('disabled') ? ' disabled="disabled"': '') + ($(obj.el).attr('accept') ? ' accept="'+ $(obj.el).attr('accept') +'"': '') + '/>'+
+                        '       <input '+ searchId +' name="attachment" class="file-input" type="file" style="width: 100%; height: 100%; opacity: 0;" tabindex="-1"' + (obj.options.max !== 1 ? ' multiple="multiple"': '') + ($(obj.el).prop('readonly') ? ' readonly="readonly"': '') + ($(obj.el).prop('disabled') ? ' disabled="disabled"': '') + ($(obj.el).attr('accept') ? ' accept="'+ $(obj.el).attr('accept') +'"': '') + '/>'+
                         '   </div>'+
                         '    <div style="position: absolute; padding: 0px; margin: 0px; display: inline-block" class="w2ui-multi-items">'+
                         '        <ul><li style="padding-left: 0px; padding-right: 0px" class="nomouse"></li></ul>'+
@@ -2421,7 +2477,7 @@
                         $(obj.el).triggerHandler('click');
                     })
                     .on('focus', function (event) {
-                        $(div).css({ 'outline': 'auto 5px #7DB4F3', 'outline-offset': '-2px' });
+                        $(div).css({ 'outline': 'auto 5px #7DB4F3', 'outline-offset': '2px' });
                         $(obj.el).triggerHandler('focus');
                         if (event.stopPropagation) event.stopPropagation(); else event.cancelBubble = true;
                     })
@@ -2438,41 +2494,38 @@
             }
             if (obj.type === 'file') {
                 $(obj.el).css('outline', 'none');
-                div.on('click', function (event) {
-                        $(obj.el).focus();
+                div.find('input')
+                .off('.drag')
+                    .on('click.drag', function (event) {
+                        event.stopPropagation();
                         if ($(obj.el).prop('readonly') || $(obj.el).prop('disabled')) return;
-                        obj.blur(event);
-                        obj.resize();
-                        setTimeout(function () { div.find('input').click(); }, 10); // needed this when clicked on items div
+                        $(obj.el).focus();
                     })
-                    .on('dragenter', function (event) {
+                    .on('dragenter.drag', function (event) {
                         if ($(obj.el).prop('readonly') || $(obj.el).prop('disabled')) return;
                         $(div).addClass('w2ui-file-dragover');
                     })
-                    .on('dragleave', function (event) {
+                    .on('dragleave.drag', function (event) {
                         if ($(obj.el).prop('readonly') || $(obj.el).prop('disabled')) return;
-                        var tmp = $(event.target).parents('.w2ui-field-helper');
-                        if (tmp.length === 0) $(div).removeClass('w2ui-file-dragover');
+                        $(div).removeClass('w2ui-file-dragover');
                     })
-                    .on('drop', function (event) {
+                    .on('drop.drag', function (event) {
                         if ($(obj.el).prop('readonly') || $(obj.el).prop('disabled')) return;
                         $(div).removeClass('w2ui-file-dragover');
                         var files = event.originalEvent.dataTransfer.files;
                         for (var i = 0, l = files.length; i < l; i++) obj.addFile.call(obj, files[i]);
+                        $(obj.el).focus();
                         // cancel to stop browser behaviour
                         event.preventDefault();
                         event.stopPropagation();
                     })
-                    .on('dragover', function (event) {
+                    .on('dragover.drag', function (event) {
                         // cancel to stop browser behaviour
                         event.preventDefault();
                         event.stopPropagation();
-                    });
-                div.find('input')
-                    .on('click', function (event) {
-                        event.stopPropagation();
                     })
-                    .on('change', function () {
+                    .on('change.drag', function () {
+                        $(obj.el).focus();
                         if (typeof this.files !== "undefined") {
                             for (var i = 0, l = this.files.length; i < l; i++) {
                                 obj.addFile.call(obj, this.files[i]);

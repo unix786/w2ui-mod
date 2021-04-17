@@ -8,6 +8,13 @@ node_modules/
 /npm-debug.log
 .DAV
 copy_shield.sh
+npm-shrinkwrap.json
+package-lock.json
+*~
+clazzes-maven/target
+.DS_Store
+copy-shield.sh
+dist/w2ui-1.5.0.tgz
 
 dist/
 /.vs
