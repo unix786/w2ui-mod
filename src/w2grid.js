@@ -2300,11 +2300,11 @@
             }
             // event before
             var edata = this.trigger({
-                    phase: 'before', type: 'search', target: this.name, multi: (arguments.length === 0 ? true : false),
-                    searchField: (field ? field : 'multi'), searchValue: (field ? value : 'multi'),
+                phase: 'before', type: 'search', target: this.name, multi: (arguments.length === 0 ? true : false),
+                searchField: (field ? field : 'multi'), searchValue: (field ? value : 'multi'),
                 searchData: pendingFilter ? pendingFilter.searchData : this.searchData,
-                    quickFind: pendingQuickFind ?? this.quickFind,
-                    searchLogic: pendingFilter.logic });
+                quickFind: pendingQuickFind ?? this.quickFind
+            });
             if (edata.isCancelled === true) return;
             // default action
             this.quickFind = edata.quickFind;
