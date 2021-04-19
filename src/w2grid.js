@@ -2568,9 +2568,20 @@
 
         /**
          * Shows column selection overlay for toolbar filter (quickFind).
-         * @param {any} button target element to show overlay.
          */
-        searchShowFields: function (forceHide, button) {
+        searchShowFields: function (options = {
+            forceHide: false,
+            /** target element where to show overlay. */
+            targetElement: null
+        }) {
+            var forceHide;
+            var targetElement;
+            if (jQuery.isPlainObject(options)) {
+                forceHide = options.forceHide;
+                targetElement = options.targetElement;
+            } else {
+                forceHide = options;
+            }
             var grid = this;
             var el   = this.getSearchAll();
             var overlayName = grid.name + '-searchFields';
@@ -2578,7 +2589,7 @@
                 $(el).w2overlay({ name: overlayName });
                 return;
             }
-            if (!button) button = el[0];
+            if (!targetElement) targetElement = el[0];
             var html = '<div class="w2ui-select-field"><table><tbody>';
             for (var s = -1; s < this.searches.length; s++) {
                 var search = this.searches[s];
@@ -2611,7 +2622,7 @@
                         ) +
                         (w2utils.isIOS ? 'onTouchStart' : 'onClick') +'="event.stopPropagation(); '+
                         '           w2ui[\''+ grid.name +'\'].initAllField(\''+ search.field +'\');'+
-                        '           jQuery(\'#' + button.id + '\').w2overlay({ name: \''+ overlayName + '\' });"'+
+                        '           jQuery(\'#' + targetElement.id + '\').w2overlay({ name: \''+ overlayName + '\' });"'+
                         '           jQuery(this).addClass(\'w2ui-selected\');'+
                         '      onmousedown="jQuery(this).parent().find(\'tr\').removeClass(\'w2ui-selected\'); jQuery(this).addClass(\'w2ui-selected\')" ' +
                         '      onmouseup="jQuery(this).removeClass(\'w2ui-selected\')" ' +
@@ -2627,7 +2638,7 @@
             if ($('#w2ui-overlay-'+ overlayName).length == 1) html = '';  // hide if visible
             // need timer otherwise does not show with list type
             setTimeout(function () {
-                $(button).w2overlay({ html: html, name: overlayName, left: -10 });
+                $(targetElement).w2overlay({ html: html, name: overlayName, left: -10 });
             }, 1);
         },
 
