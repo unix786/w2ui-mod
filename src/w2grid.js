@@ -5778,7 +5778,7 @@
                         width: 0,
                         height: 0,
                         margin: 0,
-                        position: 'fixed',
+                        position: 'absolute',
                         zIndex: 999999,
                         opacity: 0
                     }).addClass( '.w2ui-grid-ghost' ).animate({
